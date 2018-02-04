@@ -1,0 +1,3 @@
+[submodule "code/simple_esn"]
+	path = code/simple_esn
+	url = https://github.com/sylvchev/simple_esn.git
