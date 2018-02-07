@@ -1,3 +1,6 @@
 [submodule "code/simple_esn"]
 	path = code/simple_esn
 	url = https://github.com/sylvchev/simple_esn.git
+[submodule "code/pyESN"]
+	path = code/pyESN
+	url = https://github.com/cknd/pyESN.git
