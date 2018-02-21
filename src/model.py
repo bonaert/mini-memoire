@@ -10,11 +10,11 @@ from skimage import io
 
 from sklearn.model_selection import train_test_split
 from src.pyESN.pyESN import ESN
-from scipy import stats
 from keras.utils import np_utils
 from keras.models import Sequential
-from keras.layers import Dense, Dropout, Conv2D, Flatten, MaxPooling2D, Activation, BatchNormalization
+from keras.layers import Conv2D, Flatten, MaxPooling2D, Activation, BatchNormalization
 from keras.metrics import categorical_accuracy
+from keras import backend as K
 
 # import matplotlib.pyplot as plt
 import utils
@@ -22,13 +22,11 @@ import utils
 MAX_RESERVOIR_SIZE = 200
 TEST_SIZE = 100
 
-from keras import backend as K
-
 K.set_image_data_format('channels_last')
 
 
-def modeColumns(classifierPredictionsList):
-    counts = sum(classifierPredictionsList)
+def modeColumns(classifier_predictions_list):
+    counts = sum(classifier_predictions_list)
     maxCountIndex = [np.argmax(row) for row in counts]
     oneHotModes = np.array([CODED_EMOTIONS[i] for i in maxCountIndex])
     return oneHotModes
@@ -41,8 +39,6 @@ class EnsembleClassifier:
     def predict(self, X):
         pred = self.getAllPredictions(X)
         mode = modeColumns(pred)
-        # mode = stats.mode(pred)
-        # mode = mode[0]
         return mode
 
     def getAllPredictions(self, X):
@@ -68,52 +64,64 @@ def getAccuracy(predicted, real):
         if np.argmax(predicted[i]) == np.argmax(real[i]):
             numCorrect += 1
     return numCorrect / length
-    return categorical_accuracy(real, predicted)
+    # return categorical_accuracy(real, predicted)
+
+
+LayerInfo = namedtuple("LayerInfo", ['numKernels', 'kernelSize', 'poolSize'])
+
+
+def generateCNNParameters(random_generator):
+    # Number of layers
+    # Feature map dimensions
+    # The number of parameters
+    # Pooling sizes
+    numLayers = 2  # randomGenerator.randint(2, 3)
+    layersInfos = []
+    for i in range(numLayers):
+        # minNumKernels = 20 if i == 0 else layersInfos[-1].numKernels
+        layerInfo = LayerInfo(
+            numKernels=random_generator.randint(1, 20),
+            kernelSize=random_generator.randint(2, 10),
+            poolSize=random_generator.choice([2, 4, 8]))
+        layersInfos.append(layerInfo)
+
+    return layersInfos
 
 
 class CNN:
-    def __init__(self, inputShape, numOutputs, randomGenerator):
-        dim = inputShape[0]
+    def __init__(self, input_shape, random_generator):
+        dim = input_shape[0]
 
-        numKernels1 = randomGenerator.randint(1, 20)
-
-        # TODO: the maths are a shitton easier if I choose "same" padding!
-        # The output is preserved, I can vary stride and size any way I want without worrying
-
-        # size = ((64 - a) / 2 - b) / 2
-        # size = 16 - a / 4 - b / 2 = 10
-        # 6 = a / 4 + b / 2
-        # 24 = a + 2b
-        # a est forcement pair est entre 0 / 24
-        kernelSize1 = randomGenerator.choice([2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24])
-        kernelSize2 = int((24 - kernelSize1) / 2)
-
-        totalReduction = dim - int(numOutputs ** 0.5)
         self.model = Sequential()
-        currentSize = 64
-        self.model.add(Conv2D(numKernels1,
-                              (kernelSize1 + 1, kernelSize1 + 1),
-                              data_format="channels_last",
-                              # padding="same",
-                              input_shape=(dim, dim, 1)))
-        currentSize = 60 * 4
+        self.layersInfo = generateCNNParameters(random_generator)
+        print(self.layersInfo)
 
-        # Added according to https://yashk2810.github.io/Applying-Convolutional-Neural-Network-on-the-MNIST-dataset/
-        self.model.add(BatchNormalization(axis=-1))
-        self.model.add(Activation("relu"))
-        self.model.add(MaxPooling2D(pool_size=(2, 2)))
-        currentSize /= 2  # 30
+        firstLayer = True
+        for layer in self.layersInfo:
+            if firstLayer:
+                self.model.add(Conv2D(
+                    filters=layer.numKernels,
+                    kernel_size=(layer.kernelSize, layer.kernelSize),
+                    padding="same",
+                    data_format="channels_last",
+                    input_shape=(dim, dim, 1)
+                ))
+            else:
+                self.model.add(Conv2D(
+                    filters=layer.numKernels,
+                    kernel_size=(layer.kernelSize, layer.kernelSize),
+                    padding="same"
+                ))
 
-        self.model.add(Conv2D(1, (kernelSize2 + 1, kernelSize2 + 1)))
-        currentSize -= 10  # 20
-        # Added according to https://yashk2810.github.io/Applying-Convolutional-Neural-Network-on-the-MNIST-dataset/
-        self.model.add(BatchNormalization(axis=-1))
-
-        self.model.add(Activation("relu"))
-        self.model.add(MaxPooling2D(pool_size=(2, 2)))
-        currentSize /= 2  # 10
+            # Added according to https://yashk2810.github.io/Applying-Convolutional-Neural-Network-on-the-MNIST-dataset/
+            self.model.add(BatchNormalization(axis=-1))
+            self.model.add(Activation("relu"))
+            self.model.add(MaxPooling2D(pool_size=(layer.poolSize, layer.poolSize)))
 
         self.model.add(Flatten())
+
+        self.outputSize = self.model.output_shape[-1]
+        assert (len(self.model.output_shape) == 2)
 
         # TODO: I won't train this CNN, so do I need to pass this?
         self.model.compile(
@@ -122,11 +130,12 @@ class CNN:
             metrics=['accuracy']
         )
 
-    def predict(self, X):
-        return self.model.predict(X)
+    def predict(self, x):
+        return self.model.predict(x)
 
 
-def createESN(inputSize, outputSize, reservoirSize=None, spectralRadius=None,
+EsnConfiguration = namedtuple("EsnConfiguration", ['reservoirSize', 'spectralRadius', 'degreeSparsity'])
+def createESN(inputSize, reservoirSize=None, spectralRadius=None,
               degreeSparsity=None, randomState=None):
     if randomState is None:
         randomState = np.random.RandomState(42)
@@ -144,15 +153,15 @@ def createESN(inputSize, outputSize, reservoirSize=None, spectralRadius=None,
         # degreeSparsity = randomState.choice([0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0])
         degreeSparsity = randomState.choice([0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8])
 
-    # TODO: figure out noise, activations and random state
+    esnConfiguration = EsnConfiguration(reservoirSize, spectralRadius, degreeSparsity)
+    print(esnConfiguration)
 
     return ESN(n_inputs=inputSize,
                n_outputs=NUM_EMOTIONS,
                n_reservoir=reservoirSize,
                spectral_radius=spectralRadius,
                sparsity=degreeSparsity,
-               noise=0,  # ???
-               out_activation=lambda x: x,  # expit = logistic function
+               out_activation=lambda x: x,  # logit logistic function ,
                inverse_out_activation=lambda x: x,  # logit = inverse logistic function
                random_state=randomState,
                silent=True)
@@ -161,8 +170,8 @@ def createESN(inputSize, outputSize, reservoirSize=None, spectralRadius=None,
 class CESN:
     def __init__(self, inputShape, randomGenerator):
         # TODO: figure out the size of input fed to ESN
-        self.cnn = CNN(inputShape, 100, randomGenerator)
-        self.esn = createESN(100, NUM_EMOTIONS, randomState=randomGenerator)
+        self.cnn = CNN(inputShape, randomGenerator)
+        self.esn = createESN(inputSize=self.cnn.outputSize, randomState=randomGenerator)
 
     def fit(self, X, y):
         CNNProcessedInput = self.cnn.predict(X)
@@ -190,7 +199,7 @@ EMOTIONS = [
     'HA',  # HAPPINESS
     'NE',  # NEUTRAL
     'SA',  # SADNESS
-    'SU'  # SURPRISE
+    'SU'   # SURPRISE
 ]
 NUM_EMOTIONS = len(EMOTIONS)
 CODED_EMOTIONS = [np_utils.to_categorical(i, NUM_EMOTIONS) for i in range(NUM_EMOTIONS)]
@@ -211,7 +220,6 @@ def normalizeImage(image):
 
 
 def getJAFFEData(flatten=False):
-    NUMDATA = 200
     images = []
     emotions = []
     for imageName, fullPath in utils.getJAFFEImageNames():
@@ -221,10 +229,21 @@ def getJAFFEData(flatten=False):
         images.append(image)
         emotions.append(getEmotionFromFileName(imageName))
 
-    return np.array(images[:NUMDATA]), np.array(emotions[:NUMDATA])
+    return np.array(images), np.array(emotions)
+    # NUMDATA = 800
+    # return np.array(images[:NUMDATA]), np.array(emotions[:NUMDATA])
 
 
 RunInformation = namedtuple('runInformation', ['numClassifiers', 'accuracy', 'timing'])
+
+
+def timer(f):
+    start = time()
+    result = f()
+    end = time()
+    duration = end - start
+    print("It took %.3f seconds" % duration)
+    return result
 
 
 def doExperiments(minClassifiers=5, maxClassifiers=50):
@@ -236,17 +255,24 @@ def doExperiments(minClassifiers=5, maxClassifiers=50):
     runInfo = []
     for numClassifiers in range(minClassifiers, maxClassifiers + 1, 5):
         start = time()
-        ensembleClassifier = createEnsembleClassifier(numClassifiers, 64 * 64, 1)
-        ensembleClassifier.fit(X_train, y_train)
-        predictions = ensembleClassifier.predict(X_test)
+        print("------- %d classifiers -------- " % numClassifiers)
+        print("Creating and compiling models...")
+        ensembleClassifier = timer(lambda: createEnsembleClassifier(numClassifiers, 64 * 64, 1))
+        print("Training models...")
+        timer(lambda: ensembleClassifier.fit(X_train, y_train))
+        print("Predicting values... ")
+        predictions = timer(lambda: ensembleClassifier.predict(X_test))
+        print("Got predictions!")
         end = time()
-        timing = start - end
 
+        timing = end - start
         accuracy = getAccuracy(predictions, y_test)
-
-        runInfo.append(RunInformation(numClassifiers, accuracy, timing))
+        runInfo.append(RunInformation(numClassifiers, round(accuracy, 4), round(timing, 4)))
 
         print("The accuracy gotten with %d classifiers is %.3f" % (numClassifiers, accuracy))
+        print()
+        print()
+
     print(runInfo)
     return runInfo
 
@@ -259,6 +285,6 @@ def getFreeFileName(startName, ext='csv'):
     return "%s%s.%s" % (startName, i, ext)
 
 
-runInfo = doExperiments(maxClassifiers=10)
+runInfo = doExperiments(minClassifiers=5,maxClassifiers=20)
 df = pd.DataFrame(runInfo)
 df.to_csv(getFreeFileName('results'))
