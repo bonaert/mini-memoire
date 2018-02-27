@@ -13,19 +13,27 @@ from src.pyESN.pyESN import ESN
 from keras.utils import np_utils
 from keras.models import Sequential
 from keras.layers import Conv2D, Flatten, MaxPooling2D, Activation, BatchNormalization
-from keras.metrics import categorical_accuracy
 from keras import backend as K
 
 # import matplotlib.pyplot as plt
 import utils
 
-MAX_RESERVOIR_SIZE = 200
-TEST_SIZE = 100
-
 K.set_image_data_format('channels_last')
 
+EMOTIONS = [
+    'AN',  # ANGER
+    'DI',  # DISGUST,
+    'FE',  # FEAR
+    'HA',  # HAPPINESS
+    'NE',  # NEUTRAL
+    'SA',  # SADNESS
+    'SU'  # SURPRISE
+]
+NUM_EMOTIONS = len(EMOTIONS)
+CODED_EMOTIONS = [np_utils.to_categorical(i, NUM_EMOTIONS) for i in range(NUM_EMOTIONS)]
 
-def modeColumns(classifier_predictions_list):
+
+def getMode(classifier_predictions_list):
     counts = sum(classifier_predictions_list)
     maxCountIndex = [np.argmax(row) for row in counts]
     oneHotModes = np.array([CODED_EMOTIONS[i] for i in maxCountIndex])
@@ -37,8 +45,8 @@ class EnsembleClassifier:
         self.classifiers = classifiers
 
     def predict(self, X):
-        pred = self.getAllPredictions(X)
-        mode = modeColumns(pred)
+        predictions = self.getAllPredictions(X)
+        mode = getMode(predictions)
         return mode
 
     def getAllPredictions(self, X):
@@ -67,22 +75,29 @@ def getAccuracy(predicted, real):
     # return categorical_accuracy(real, predicted)
 
 
-LayerInfo = namedtuple("LayerInfo", ['numKernels', 'kernelSize', 'poolSize'])
+LayerInfo = namedtuple("LayerInfo", ['numKernels', 'kernelSize', 'hasPool', 'poolSize'])
 
 
 def generateCNNParameters(random_generator):
-    # Number of layers
-    # Feature map dimensions
-    # The number of parameters
-    # Pooling sizes
-    numLayers = 2  # randomGenerator.randint(2, 3)
+    """
+    Generates random parameters for a CNN, using the provided random number generator.
+    It returns a list of LayerInfo named tuples (whose length is the number of layer),
+    each representing a Convolutional Layer + MaxPooling Layer. A LayerInfo contains:
+    - The number of kernels in the Convolutional Layer
+    - The kernel size in the Convolutional Layer
+    - The pool size of the MaxPooling Layer (if there is one)
+    """
+    # numLayers = random_generator.choice([2, 3, 4, 5, 6])
+    numLayers = random_generator.choice([2])
     layersInfos = []
     for i in range(numLayers):
         # minNumKernels = 20 if i == 0 else layersInfos[-1].numKernels
         layerInfo = LayerInfo(
-            numKernels=random_generator.randint(1, 20),
-            kernelSize=random_generator.randint(2, 10),
-            poolSize=random_generator.choice([2, 4, 8]))
+            numKernels=random_generator.randint(10, 20),
+            kernelSize=random_generator.randint(2, 6),
+            # hasPool=random_generator.choice([True, False]),
+            hasPool=random_generator.choice([True]),
+            poolSize=random_generator.choice([2, 4]))
         layersInfos.append(layerInfo)
 
     return layersInfos
@@ -96,9 +111,8 @@ class CNN:
         self.layersInfo = generateCNNParameters(random_generator)
         print(self.layersInfo)
 
-        firstLayer = True
-        for layer in self.layersInfo:
-            if firstLayer:
+        for (layerNum, layer) in enumerate(self.layersInfo):
+            if layerNum == 0:
                 self.model.add(Conv2D(
                     filters=layer.numKernels,
                     kernel_size=(layer.kernelSize, layer.kernelSize),
@@ -114,9 +128,11 @@ class CNN:
                 ))
 
             # Added according to https://yashk2810.github.io/Applying-Convolutional-Neural-Network-on-the-MNIST-dataset/
-            self.model.add(BatchNormalization(axis=-1))
-            self.model.add(Activation("relu"))
-            self.model.add(MaxPooling2D(pool_size=(layer.poolSize, layer.poolSize)))
+            # self.model.add(BatchNormalization(axis=-1))
+            # self.model.add(Activation("relu"))
+
+            if layer.hasPool:
+                self.model.add(MaxPooling2D(pool_size=(layer.poolSize, layer.poolSize)))
 
         self.model.add(Flatten())
 
@@ -135,6 +151,8 @@ class CNN:
 
 
 EsnConfiguration = namedtuple("EsnConfiguration", ['reservoirSize', 'spectralRadius', 'degreeSparsity'])
+
+
 def createESN(inputSize, reservoirSize=None, spectralRadius=None,
               degreeSparsity=None, randomState=None):
     if randomState is None:
@@ -142,7 +160,6 @@ def createESN(inputSize, reservoirSize=None, spectralRadius=None,
 
     if reservoirSize is None:
         reservoirSize = randomState.choice([100, 200, 300, 400, 500, 600, 700, 800, 900, 1000])
-        # reservoirSize = randomState.randint(1, MAX_RESERVOIR_SIZE + 1)
     if spectralRadius is None:
         spectralRadius = randomState.choice([0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0])
         # spectralRadius = randomState.uniform()
@@ -161,7 +178,7 @@ def createESN(inputSize, reservoirSize=None, spectralRadius=None,
                n_reservoir=reservoirSize,
                spectral_radius=spectralRadius,
                sparsity=degreeSparsity,
-               out_activation=lambda x: x,  # logit logistic function ,
+               out_activation= lambda x:x, #K.softmax,  # lambda x: x,  # logit logistic function ,
                inverse_out_activation=lambda x: x,  # logit = inverse logistic function
                random_state=randomState,
                silent=True)
@@ -192,19 +209,6 @@ def createEnsembleClassifier(numClassifiers, inputSize, outputSize):
     return EnsembleClassifier(classifiers)
 
 
-EMOTIONS = [
-    'AN',  # ANGER
-    'DI',  # DISGUST,
-    'FE',  # FEAR
-    'HA',  # HAPPINESS
-    'NE',  # NEUTRAL
-    'SA',  # SADNESS
-    'SU'   # SURPRISE
-]
-NUM_EMOTIONS = len(EMOTIONS)
-CODED_EMOTIONS = [np_utils.to_categorical(i, NUM_EMOTIONS) for i in range(NUM_EMOTIONS)]
-
-
 def getEmotionFromFileName(imageName):
     person, emotionCode, photoNumber, extension = imageName.split('.')
     for (i, potentialEmotion) in enumerate(EMOTIONS):
@@ -215,8 +219,8 @@ def getEmotionFromFileName(imageName):
 
 
 def normalizeImage(image):
-    # return image / 2 ** 16
-    return (image - image.mean()) / (image.std() + 1e-8)
+    return image / 2 ** 16
+    # return (image - image.mean()) / (image.std() + 1e-8)
 
 
 def getJAFFEData(flatten=False):
@@ -234,7 +238,7 @@ def getJAFFEData(flatten=False):
     # return np.array(images[:NUMDATA]), np.array(emotions[:NUMDATA])
 
 
-RunInformation = namedtuple('runInformation', ['numClassifiers', 'accuracy', 'timing'])
+RunInformation = namedtuple('RunInformation', ['numClassifiers', 'accuracy', 'timing'])
 
 
 def timer(f):
@@ -250,7 +254,7 @@ def doExperiments(minClassifiers=5, maxClassifiers=50):
     images, y = getJAFFEData()
     images = images.reshape(images.shape[0], images.shape[1], images.shape[2], 1)
     X_train, X_test, y_train, y_test = train_test_split(
-        images, y, test_size=0.33, random_state=42)
+        images, y, test_size=0.2, random_state=42)
 
     runInfo = []
     for numClassifiers in range(minClassifiers, maxClassifiers + 1, 5):
@@ -285,6 +289,6 @@ def getFreeFileName(startName, ext='csv'):
     return "%s%s.%s" % (startName, i, ext)
 
 
-runInfo = doExperiments(minClassifiers=5,maxClassifiers=20)
+runInfo = doExperiments(minClassifiers=5, maxClassifiers=50)
 df = pd.DataFrame(runInfo)
 df.to_csv(getFreeFileName('results'))
