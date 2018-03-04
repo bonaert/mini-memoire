@@ -1,3 +1,5 @@
+import shutil
+
 from skimage import io
 from skimage.color import rgb2gray
 from skimage.transform import resize
@@ -21,13 +23,18 @@ def transformAndSaveImage(name, datasetDir):
 
 
 def transformAllImages():
-    for imageFileName, fullFileName in utils.getJAFFEImageNames(transformed=False):
-        transformAndSaveImage(imageFileName, datasetDir='JAFFE')
+    # for imageFileName, fullFileName in utils.getJAFFEImageNames(transformed=False):
+    #     transformAndSaveImage(imageFileName, datasetDir='JAFFE')
 
     for person, emotion, imageFileName, relFileName in utils.getCohnKanadeImageNames(transformed=False):
         utils.createDirectoriesIfNeeded('%s/%s/%s/test.file' %
-                                        (utils.COHN_KANADE_PROCESSED_DIR, person, emotion))
-        transformAndSaveImage(relFileName, datasetDir='CohnKanade/cohn-kanade')
+                                        (utils.COHN_KANADE_PROCESSED_EMOTION_DIR, person, emotion))
+        utils.createDirectoriesIfNeeded('%s/%s/%s/test.file' %
+                                        (utils.COHN_KANADE_PROCESSED_IMAGES_DIR, person, emotion))
+        transformAndSaveImage(relFileName, datasetDir='CohnKanadePlus/cohn-kanade-images')
+
+    # Copy emotions
+    shutil.copytree(src=utils.COHN_KANADE_EMOTION_DIR, dst=utils.COHN_KANADE_PROCESSED_EMOTION_DIR)
 
 
 if __name__ == '__main__':
