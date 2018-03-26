@@ -14,6 +14,7 @@ from keras.utils import np_utils
 from keras.models import Sequential
 from keras.layers import Conv2D, Flatten, MaxPooling2D, Activation, BatchNormalization
 from keras import backend as K
+from tqdm import tqdm
 
 # import matplotlib.pyplot as plt
 import utils
@@ -66,7 +67,7 @@ class EnsembleClassifier:
 
     def getAllPredictions(self, X):
         predictions = []
-        for classifier in self.classifiers:
+        for classifier in tqdm(self.classifiers):
             classifierPredictions = classifier.predict(X)
             oneHotPredictions = [
                 JAFFE_CODED_EMOTIONS[np.argmax(classifierPrediction)] for
@@ -77,7 +78,7 @@ class EnsembleClassifier:
 
     def fit(self, X, y):
         NUM_ITERATIONS = 2
-        for classifier in self.classifiers:
+        for classifier in tqdm(self.classifiers):
             for i in range(NUM_ITERATIONS):
                 classifier.fit(X, y)
 
@@ -379,7 +380,7 @@ def getFreeFileName(startName, ext='csv'):
     return "%s%s.%s" % (startName, i, ext)
 
 
-useJaffe = False
+useJaffe = True
 if useJaffe:
     fileName = getFreeFileName('resultsJaffe')
 else:
