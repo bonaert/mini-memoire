@@ -76,8 +76,17 @@ class EnsembleClassifier:
         return np.array(predictions)
 
     def fit(self, X, y):
+        NUM_ITERATIONS = 2
         for classifier in self.classifiers:
-            classifier.fit(X, y)
+            for i in range(NUM_ITERATIONS):
+                classifier.fit(X, y)
+
+    def __str__(self):
+        res = ""
+        for (i, classifier) in enumerate(self.classifiers, start=1):
+            res += "Classifier %d" % i + "\n"
+            res += str(classifier) + "\n"
+        return res
 
 
 def getAccuracy(predicted, real):
@@ -103,16 +112,16 @@ def generateCNNParameters(random_generator):
     - The pool size of the MaxPooling Layer (if there is one)
     """
     # numLayers = random_generator.choice([2, 3, 4, 5, 6])
-    numLayers = random_generator.randint(2, 4)
+    numLayers = random_generator.choice([2])
     layersInfos = []
     for i in range(numLayers):
         # minNumKernels = 20 if i == 0 else layersInfos[-1].numKernels
         layerInfo = LayerInfo(
             numKernels=random_generator.randint(10, 100),
-            kernelSize=random_generator.randint(2, 6),
+            kernelSize=random_generator.randint(2, 5),
             # hasPool=random_generator.choice([True, False]),
             hasPool=True,  # As specified by article, in part III.C
-            poolSize=random_generator.choice([2, 4]))
+            poolSize=random_generator.choice([2]))
         layersInfos.append(layerInfo)
 
     return layersInfos
@@ -167,11 +176,7 @@ class CNN:
 EsnConfiguration = namedtuple("EsnConfiguration", ['reservoirSize', 'spectralRadius', 'degreeSparsity'])
 
 
-def createESN(inputSize, outputSize, reservoirSize=None, spectralRadius=None,
-              degreeSparsity=None, randomState=None):
-    if randomState is None:
-        randomState = np.random.RandomState(42)
-
+def createESN(inputSize, outputSize, randomState, reservoirSize=None, spectralRadius=None, degreeSparsity=None):
     if reservoirSize is None:
         reservoirSize = randomState.choice([100, 200, 300, 400, 500, 600, 700, 800, 900, 1000])
     if spectralRadius is None:
@@ -210,24 +215,23 @@ class CESN:
         CNNProcessedInput = self.cnn.predict(X)
         return self.esn.predict(CNNProcessedInput)
 
+    def __str__(self):
+        res = ""
+        for layerInfo in self.cnn.layersInfo:
+            res += "\tCNN Layer: " + str(layerInfo) + "\n"
 
-def getRandomSeed(i):
-    return i * 50 + 10
+        res += "\tESN: " + str(self.esn.esnConfiguration) + "\n"
+        return res
 
 
-def createEnsembleClassifier(numClassifiers, outputSize):
+def createEnsembleClassifier(numClassifiers, outputSize, randomGenerator):
     # classifiers = [createESN(inputSize, outputSize) for _ in range(numClassifiers)]
     classifiers = []
     for i in range(numClassifiers):
-        randomGenerator = np.random.RandomState(getRandomSeed(i))  # Random formula
         cesn = CESN((64, 64, 1), randomGenerator, outputSize)
 
         print("Classifier %d" % (i + 1))
-        for layerInfo in cesn.cnn.layersInfo:
-            print("\tCNN Layer: " + str(layerInfo))
-
-        print("\tESN: " + str(cesn.esn.esnConfiguration))
-        print()
+        print(cesn)
 
         classifiers.append(cesn)
     return EnsembleClassifier(classifiers)
@@ -244,7 +248,8 @@ def getEmotionFromFileName(imageName):
 
 def normalizeImage(image):
     image = image / 2 ** 16
-    return (image - image.mean()) / (image.std() + 1e-8)
+    return image
+    # return (image - image.mean()) / (image.std() + 1e-8)
 
 
 def getCKEmotion(personDir, emotionDir):
@@ -316,7 +321,7 @@ def timer(f):
     return result
 
 
-def doExperiments(classifierRange=list(range(5, 51, 5)), useJaffe=False):
+def doExperiments(resultsFileName, archFile, classifierRange=list(range(5, 51, 5)), useJaffe=False):
     if useJaffe:
         outputSize = JAFFE_NUM_EMOTIONS
         images, y = getJAFFEData()
@@ -331,11 +336,13 @@ def doExperiments(classifierRange=list(range(5, 51, 5)), useJaffe=False):
     print(X_train.shape)
 
     runInfo = []
+    randomGenerator = np.random.RandomState(3967896499)
+    classifiersStr = []
     for numClassifiers in classifierRange:
         start = time()
         print("------- %d classifiers -------- " % numClassifiers)
         print("Creating and compiling models...")
-        ensembleClassifier = timer(lambda: createEnsembleClassifier(numClassifiers, outputSize))
+        ensembleClassifier = timer(lambda: createEnsembleClassifier(numClassifiers, outputSize, randomGenerator))
         print("Training models...")
         timer(lambda: ensembleClassifier.fit(X_train, y_train))
         print("Predicting values... ")
@@ -346,13 +353,22 @@ def doExperiments(classifierRange=list(range(5, 51, 5)), useJaffe=False):
         timing = end - start
         accuracy = getAccuracy(predictions, y_test)
         runInfo.append(RunInformation(numClassifiers, round(accuracy, 4), round(timing, 4)))
+        classifiersStr.append(str(ensembleClassifier))
+
+        # Output results & architecture to file
+        # Results
+        df = pd.DataFrame(runInfo)
+        df.to_csv(resultsFileName)
+        # Architecture
+        archFile.write(str(ensembleClassifier) + '\n\n\n')
+        archFile.flush()
 
         print("The accuracy gotten with %d classifiers is %.3f" % (numClassifiers, accuracy))
         print()
         print()
 
     print(runInfo)
-    return runInfo
+    return runInfo, classifiersStr
 
 
 def getFreeFileName(startName, ext='csv'):
@@ -363,6 +379,12 @@ def getFreeFileName(startName, ext='csv'):
     return "%s%s.%s" % (startName, i, ext)
 
 
-runInfo = doExperiments(classifierRange=range(5, 25 + 1, 5))
-df = pd.DataFrame(runInfo)
-df.to_csv(getFreeFileName('results'))
+useJaffe = False
+if useJaffe:
+    fileName = getFreeFileName('resultsJaffe')
+else:
+    fileName = getFreeFileName('resultsCK')
+
+archFileName = fileName.replace(".csv", ".arch")
+with open(archFileName, 'w') as archFile:
+    runInfo, classifiersStr = doExperiments(fileName, archFile, classifierRange=range(5, 80 + 1, 5), useJaffe=useJaffe)
