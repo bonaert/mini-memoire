@@ -57,8 +57,10 @@ def getMode(classifier_predictions_list):
 
 
 class EnsembleClassifier:
-    def __init__(self, classifiers):
-        self.classifiers = classifiers
+    def __init__(self, numClassifiers, createClassifierFunction):
+        self.numClassifiers = numClassifiers
+        self.createClassifierFunction = createClassifierFunction
+        self.classifiersStr = []
 
     def predict(self, X):
         predictions = self.getAllPredictions(X)
@@ -76,17 +78,41 @@ class EnsembleClassifier:
             predictions.append(oneHotPredictions)
         return np.array(predictions)
 
-    def fit(self, X, y):
+    def getPredictions(self, classifier, X):
+        classifierPredictions = classifier.predict(X)
+        oneHotPredictions = [
+            JAFFE_CODED_EMOTIONS[np.argmax(classifierPrediction)] for
+            classifierPrediction in classifierPredictions
+        ]
+        return oneHotPredictions
+
+    def fit(self, classifier, X, y):
         NUM_ITERATIONS = 2
-        for classifier in tqdm(self.classifiers):
-            for i in range(NUM_ITERATIONS):
-                classifier.fit(X, y)
+        for i in range(NUM_ITERATIONS):
+            classifier.fit(X, y)
+
+    def fitAndPredict(self, X_train, y_train, X_test):
+        """
+        In this method, we only keep track of one classifier at the time, which avoid memory problems
+        when we're dealing with a huge number of classifiers.
+        :return:
+        """
+        predictions = []
+        for i in tqdm(range(self.numClassifiers)):
+            classifier = self.createClassifierFunction()
+            print("Classifier %d" % (i + 1))
+            print(classifier)
+            self.classifiersStr.append(str(classifier))
+            self.fit(classifier, X_train, y_train)
+            self.getPredictions(classifier, X_test)
+
+        return getMode(np.array(predictions))
 
     def __str__(self):
         res = ""
-        for (i, classifier) in enumerate(self.classifiers, start=1):
+        for (i, classifierStr) in enumerate(self.classifiersStr, start=1):
             res += "Classifier %d" % i + "\n"
-            res += str(classifier) + "\n"
+            res += classifierStr + "\n"
         return res
 
 
@@ -225,17 +251,13 @@ class CESN:
         return res
 
 
+def createClassifier(outputSize, randomGenerator):
+    return CESN((64, 64, 1), randomGenerator, outputSize)
+
+
 def createEnsembleClassifier(numClassifiers, outputSize, randomGenerator):
-    # classifiers = [createESN(inputSize, outputSize) for _ in range(numClassifiers)]
-    classifiers = []
-    for i in range(numClassifiers):
-        cesn = CESN((64, 64, 1), randomGenerator, outputSize)
-
-        print("Classifier %d" % (i + 1))
-        print(cesn)
-
-        classifiers.append(cesn)
-    return EnsembleClassifier(classifiers)
+    return EnsembleClassifier(numClassifiers,
+                              createClassifierFunction=lambda: createClassifier(outputSize, randomGenerator))
 
 
 def getEmotionFromFileName(imageName):
@@ -344,10 +366,8 @@ def doExperiments(resultsFileName, archFile, classifierRange=list(range(5, 51, 5
         print("------- %d classifiers -------- " % numClassifiers)
         print("Creating and compiling models...")
         ensembleClassifier = timer(lambda: createEnsembleClassifier(numClassifiers, outputSize, randomGenerator))
-        print("Training models...")
-        timer(lambda: ensembleClassifier.fit(X_train, y_train))
-        print("Predicting values... ")
-        predictions = timer(lambda: ensembleClassifier.predict(X_test))
+        print("Training models and predicting values...")
+        predictions = timer(lambda: ensembleClassifier.fitAndPredict(X_train, y_train, X_test))
         print("Got predictions!")
         end = time()
 
@@ -388,4 +408,4 @@ else:
 
 archFileName = fileName.replace(".csv", ".arch")
 with open(archFileName, 'w') as archFile:
-    runInfo, classifiersStr = doExperiments(fileName, archFile, classifierRange=range(5, 80 + 1, 5), useJaffe=useJaffe)
+    runInfo, classifiersStr = doExperiments(fileName, archFile, classifierRange=range(60, 80 + 1, 5), useJaffe=useJaffe)
