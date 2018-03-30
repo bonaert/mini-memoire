@@ -1,6 +1,8 @@
 import os
+from time import time
 
 import matplotlib.pyplot as plt
+import numpy as np
 
 
 def buildPath(relPath):
@@ -64,3 +66,22 @@ def getCohnKanadeImageNames(transformed=True):
                 fullRelFileName = '%s/%s/%s' % (personDirName,
                                                 emotionDirName, imageFileName)
                 yield personDirName, emotionDirName, imageFileName, fullRelFileName
+
+
+def timer(f):
+    start = time()
+    result = f()
+    end = time()
+    duration = end - start
+    print("It took %.3f seconds" % duration)
+    return result
+
+
+def getAccuracy(predicted, real):
+    length = real.shape[0]
+    numCorrect = 0
+    for i in range(length):
+        if np.argmax(predicted[i]) == np.argmax(real[i]):
+            numCorrect += 1
+    return numCorrect / length
+    # return categorical_accuracy(real, predicted)
