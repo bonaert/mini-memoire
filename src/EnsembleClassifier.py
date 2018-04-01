@@ -1,14 +1,19 @@
 import numpy as np
 from tqdm import tqdm
 
-from data import JAFFE_CODED_EMOTIONS
+from data import CK_CODED_EMOTIONS, JAFFE_NUM_EMOTIONS, JAFFE_CODED_EMOTIONS
 from cesn import createClassifier
 
 
 def getMode(classifier_predictions_list):
+    if len(classifier_predictions_list[0][0]) == JAFFE_NUM_EMOTIONS:
+        oneHotEmotions = JAFFE_CODED_EMOTIONS
+    else:
+        oneHotEmotions = CK_CODED_EMOTIONS
+
     counts = sum(classifier_predictions_list)
     maxCountIndex = [np.argmax(row) for row in counts]
-    oneHotModes = np.array([JAFFE_CODED_EMOTIONS[i] for i in maxCountIndex])
+    oneHotModes = np.array([oneHotEmotions[i] for i in maxCountIndex])
     return oneHotModes
 
 
@@ -28,7 +33,7 @@ class EnsembleClassifier:
         for classifier in tqdm(self.classifiers):
             classifierPredictions = classifier.predict(X)
             oneHotPredictions = [
-                JAFFE_CODED_EMOTIONS[np.argmax(classifierPrediction)] for
+                CK_CODED_EMOTIONS[np.argmax(classifierPrediction)] for
                 classifierPrediction in classifierPredictions
             ]
             predictions.append(oneHotPredictions)
@@ -37,13 +42,13 @@ class EnsembleClassifier:
     def getPredictions(self, classifier, X):
         classifierPredictions = classifier.predict(X)
         oneHotPredictions = [
-            JAFFE_CODED_EMOTIONS[np.argmax(classifierPrediction)] for
+            CK_CODED_EMOTIONS[np.argmax(classifierPrediction)] for
             classifierPrediction in classifierPredictions
         ]
         return oneHotPredictions
 
     def fit(self, classifier, X, y):
-        NUM_ITERATIONS = 2
+        NUM_ITERATIONS = 1
         for i in range(NUM_ITERATIONS):
             classifier.fit(X, y)
 

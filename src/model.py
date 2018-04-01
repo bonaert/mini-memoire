@@ -13,7 +13,8 @@ from EnsembleClassifier import createEnsembleClassifier
 from keras import backend as K
 
 # import matplotlib.pyplot as plt
-from data import getCohnKanadeData, getJAFFEData, JAFFE_NUM_EMOTIONS, CK_NUM_EMOTIONS, JAFFE_CODED_EMOTIONS
+from data import getCohnKanadeData, getJAFFEData, JAFFE_NUM_EMOTIONS, CK_NUM_EMOTIONS, JAFFE_CODED_EMOTIONS, \
+    CK_CODED_EMOTIONS
 from utils import timer, getAccuracy
 
 K.set_image_data_format('channels_last')
@@ -39,9 +40,11 @@ def getXandYSplits(X, y, n_splits=5):
 def doExperiments(resultsFileName, archFile, classifierRange=list(range(5, 51, 5)), useJaffe=False):
     if useJaffe:
         outputSize = JAFFE_NUM_EMOTIONS
+        oneHotEmotions = JAFFE_CODED_EMOTIONS
         images, y = getJAFFEData(oneHotEncoded=False)
     else:
         outputSize = CK_NUM_EMOTIONS
+        oneHotEmotions = CK_CODED_EMOTIONS
         images, y = getCohnKanadeData(oneHotEncoded=False)
 
     images = images.reshape(images.shape[0], images.shape[1], images.shape[2], 1)
@@ -57,8 +60,8 @@ def doExperiments(resultsFileName, archFile, classifierRange=list(range(5, 51, 5
         accuracies = []
         start = time()
         for i, (trainX, trainY, testX, testY) in enumerate(zip(*splittedData), start=1):
-            trainYEncoded = np.array([JAFFE_CODED_EMOTIONS[i] for i in trainY])
-            testYEncoded = np.array([JAFFE_CODED_EMOTIONS[i] for i in testY])
+            trainYEncoded = np.array([oneHotEmotions[i] for i in trainY])
+            testYEncoded = np.array([oneHotEmotions[i] for i in testY])
             print("------- %d classifiers - split %d -------- " % (numClassifiers, i))
             print("Creating and compiling models...")
             ensembleClassifier = timer(lambda: createEnsembleClassifier(numClassifiers, outputSize, randomGenerator))
@@ -101,7 +104,7 @@ def getFreeFileName(startName, ext='csv'):
     return "%s%s.%s" % (startName, i, ext)
 
 
-useJaffe = True
+useJaffe = False
 if useJaffe:
     fileName = getFreeFileName('resultsJaffe')
 else:

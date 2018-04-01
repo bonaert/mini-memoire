@@ -55,13 +55,21 @@ def getCohnKanadeData(oneHotEncoded=True):
             emotion_full_dir = person_full_dir + '/' + emotionDir
             imagesNames = sorted(os.listdir(emotion_full_dir))
 
-            relevantImages = {imagesNames[0], imagesNames[-2], imagesNames[-1]}
+            relevantImages = [imagesNames[0], imagesNames[-2], imagesNames[-1]]
+
+            # First image corresponds to neutral
+            images.append(getImage(emotion_full_dir + '/' + relevantImages[0]))
+            if oneHotEncoded:
+                emotions.append(CK_NEUTRAL_CODED_EMOTION)
+            else:
+                emotions.append(CK_NEUTRAL_EMOTION_NUM)
 
             emotion = getCKEmotion(personDir, emotionDir, oneHotEncoded)
             if emotion is None:
                 continue
 
-            for imageName in relevantImages:
+            # Last two images to the real emotion
+            for imageName in relevantImages[1:]:
                 images.append(getImage(emotion_full_dir + '/' + imageName))
                 emotions.append(emotion)
 
@@ -103,11 +111,10 @@ CK_EMOTIONS = [
     'FEAR',
     'HAPPY',
     'SADNESS',
-    'SUPRISE'
+    'SUPRISE',
+    'NEUTRAL'
 ]
 CK_NUM_EMOTIONS = len(CK_EMOTIONS)
 CK_CODED_EMOTIONS = [np_utils.to_categorical(i, CK_NUM_EMOTIONS) for i in range(CK_NUM_EMOTIONS)]
-
-
-# TODO: CK and JAFFE have the same amount of labels, so I use the JAFFE coded emotions everywhere
-# even though it's a bit hackish
+CK_NEUTRAL_CODED_EMOTION = CK_CODED_EMOTIONS[-1]
+CK_NEUTRAL_EMOTION_NUM = CK_NUM_EMOTIONS - 1
