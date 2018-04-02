@@ -7,7 +7,7 @@ import pandas as pd
 
 from statistics import mean
 
-from sklearn.model_selection import StratifiedKFold
+from sklearn.model_selection import StratifiedKFold, KFold
 
 from EnsembleClassifier import createEnsembleClassifier
 from keras import backend as K
@@ -16,6 +16,7 @@ from keras import backend as K
 from data import getCohnKanadeData, getJAFFEData, JAFFE_NUM_EMOTIONS, CK_NUM_EMOTIONS, JAFFE_CODED_EMOTIONS, \
     CK_CODED_EMOTIONS
 from utils import timer, getAccuracy
+from cnn import saveParams
 
 K.set_image_data_format('channels_last')
 
@@ -26,7 +27,7 @@ def getXandYSplits(X, y, n_splits=5):
     """
     :return: trainXs, trainYs, testXs, testYs
     """
-    skf = StratifiedKFold(n_splits=n_splits)
+    skf = KFold(n_splits=n_splits)
     trainXs, trainYs, testXs, testYs = [], [], [], []
     for train, test in skf.split(X, y):
         trainXs.append(X[train])
@@ -104,12 +105,14 @@ def getFreeFileName(startName, ext='csv'):
     return "%s%s.%s" % (startName, i, ext)
 
 
-useJaffe = False
+useJaffe = True
 if useJaffe:
     fileName = getFreeFileName('resultsJaffe')
 else:
     fileName = getFreeFileName('resultsCK')
 
 archFileName = fileName.replace(".csv", ".arch")
-with open(archFileName, 'w') as archFile:
+paramsFileName = fileName.replace(".csv", ".params")
+with open(archFileName, 'w') as archFile, open(paramsFileName, 'w') as paramsFile:
+    saveParams(paramsFile)
     runInfo, classifiersStr = doExperiments(fileName, archFile, classifierRange=range(5, 80 + 1, 5), useJaffe=useJaffe)

@@ -6,6 +6,22 @@ from keras.layers import Conv2D, MaxPooling2D, Flatten
 LayerInfo = namedtuple("LayerInfo", ['numKernels', 'kernelSize', 'hasPool', 'poolSize'])
 
 
+LAYER_RANGE = [2]
+NUM_KERNELS_MIN, NUM_KERNELS_MAX = 10, 100
+KERNEL_SIZE_MIN, KERNEL_SIZE_MAX = 2, 5
+POOL_SIZE_RANGE = [2]
+HAS_POOL = True
+
+def saveParams(f):
+    f.write("Layer range: %s \n" % LAYER_RANGE)
+    f.write("Num Kernels: Min - %d, Max - %d\n" % (NUM_KERNELS_MIN, NUM_KERNELS_MAX))
+    f.write("Kernel Size: Min - %d, Max - %d\n" % (KERNEL_SIZE_MIN, KERNEL_SIZE_MAX))
+    f.write("Pool Size range: %s \n" % POOL_SIZE_RANGE)
+    f.write("Has pool: %s" % HAS_POOL)
+    f.flush()
+
+
+
 def generateCNNParameters(random_generator):
     """
     Generates random parameters for a CNN, using the provided random number generator.
@@ -16,16 +32,16 @@ def generateCNNParameters(random_generator):
     - The pool size of the MaxPooling Layer (if there is one)
     """
     # numLayers = random_generator.choice([2, 3, 4, 5, 6])
-    numLayers = random_generator.choice([2])
+    numLayers = random_generator.choice(LAYER_RANGE)
     layersInfos = []
     for i in range(numLayers):
         # minNumKernels = 20 if i == 0 else layersInfos[-1].numKernels
         layerInfo = LayerInfo(
-            numKernels=random_generator.randint(10, 100),
-            kernelSize=random_generator.randint(2, 5),
+            numKernels=random_generator.randint(NUM_KERNELS_MIN, NUM_KERNELS_MAX),
+            kernelSize=random_generator.randint(KERNEL_SIZE_MIN, KERNEL_SIZE_MAX),
             # hasPool=random_generator.choice([True, False]),
             hasPool=True,  # As specified by article, in part III.C
-            poolSize=random_generator.choice([2]))
+            poolSize=random_generator.choice(POOL_SIZE_RANGE))
         layersInfos.append(layerInfo)
 
     return layersInfos

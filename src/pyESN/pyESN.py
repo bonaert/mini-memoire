@@ -198,10 +198,12 @@ class ESN():
             from matplotlib import pyplot as plt
             # (^-- we depend on matplotlib only if this option is used)
             plt.figure(
-                figsize=(states.shape[0] * 0.0025, states.shape[1] * 0.01))
+                figsize=(states.shape[0] * 0.025, states.shape[1] * 0.01))
             plt.imshow(extended_states.T, aspect='auto',
                        interpolation='nearest')
             plt.colorbar()
+            plt.savefig("fig.png")
+            plt.close()
 
         if not self.silent:
             print("training error:")

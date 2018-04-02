@@ -20,7 +20,7 @@ def getEmotionFromFileName(imageName, oneHotEncoded=True):
 
 
 def normalizeImage(image):
-    image = image / 2 ** 16
+    # image = image / 2 ** 16
     return image
     # return (image - image.mean()) / (image.std() + 1e-8)
 

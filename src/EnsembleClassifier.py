@@ -1,7 +1,7 @@
 import numpy as np
 from tqdm import tqdm
 
-from data import CK_CODED_EMOTIONS, JAFFE_NUM_EMOTIONS, JAFFE_CODED_EMOTIONS
+from data import CK_CODED_EMOTIONS, JAFFE_NUM_EMOTIONS, JAFFE_CODED_EMOTIONS, CK_NUM_EMOTIONS
 from cesn import createClassifier
 
 
@@ -41,8 +41,15 @@ class EnsembleClassifier:
 
     def getPredictions(self, classifier, X):
         classifierPredictions = classifier.predict(X)
+        if classifierPredictions.shape[1] == CK_NUM_EMOTIONS:
+            oneHotEmotions = CK_CODED_EMOTIONS
+        else:
+            oneHotEmotions = JAFFE_CODED_EMOTIONS
+
+
+
         oneHotPredictions = [
-            CK_CODED_EMOTIONS[np.argmax(classifierPrediction)] for
+            oneHotEmotions[np.argmax(classifierPrediction)] for
             classifierPrediction in classifierPredictions
         ]
         return oneHotPredictions
