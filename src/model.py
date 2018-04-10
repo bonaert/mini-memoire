@@ -6,7 +6,7 @@ import pandas as pd
 
 from statistics import mean
 
-from sklearn.model_selection import KFold
+from sklearn.model_selection import StratifiedKFold, KFold
 
 from EnsembleClassifier import createEnsembleClassifier
 from keras import backend as K
@@ -22,12 +22,21 @@ K.set_image_data_format('channels_last')
 RunInformation = namedtuple('RunInformation', ['numClassifiers', 'accuracy', 'timing'])
 
 
-def getXandYSplits(X, y, n_splits=5):
+def getXandYSplits(X, y, oneHotEmotions, n_splits=5):
     """
     :return: trainXs, trainYs, testXs, testYs
     """
     skf = KFold(n_splits=n_splits)
-    return [(X[train], y[train], X[test], y[test]) for train, test in skf.split(X, y)]
+
+    result = []
+    for train, test in skf.split(X, y):
+        Xtrain, Ytrain, Xtest, Ytest = X[train], y[train], X[test], y[test]
+        YtrainEncoded = np.array([oneHotEmotions[i] for i in Ytrain])
+        YtestEncoded = np.array([oneHotEmotions[i] for i in Ytest])
+
+        result.append((Xtrain, YtrainEncoded, Xtest, YtestEncoded))
+
+    return result
 
 
 class Runner:
@@ -67,7 +76,7 @@ class Runner:
         self.archFile = None
 
     def run(self):
-        splittedData = trainXs, trainYs, testXs, testYs = getXandYSplits(self.images, self.y)
+        splittedData = trainXs, trainYs, testXs, testYs = getXandYSplits(self.images, self.y, self.oneHotEmotions)
         print(trainXs[0].shape)
 
         for numClassifiers in self.classifierRange:
@@ -97,16 +106,14 @@ class Runner:
         df.to_csv(self.resultsFileName)
 
     def trainAndTest(self, trainX, trainY, testX, testY, i, numClassifiers):
-        trainYEncoded = np.array([self.oneHotEmotions[i] for i in trainY])
-        testYEncoded = np.array([self.oneHotEmotions[i] for i in testY])
         print("------- %d classifiers - split %d -------- " % (numClassifiers, i))
         print("Creating and compiling models...")
         ensembleClassifier = timer(
             lambda: createEnsembleClassifier(numClassifiers, self.outputSize, self.randomGenerator))
         print("Training models and predicting values...")
-        predictions = timer(lambda: ensembleClassifier.fitAndPredict(trainX, trainYEncoded, testX))
+        predictions = timer(lambda: ensembleClassifier.fitAndPredict(trainX, trainY, testX))
         print("Got predictions!")
-        accuracy = getAccuracy(predictions, testYEncoded)
+        accuracy = getAccuracy(predictions, testY)
         self.accuracies.append(accuracy)
         print("The accuracy for this split was: %.3f" % accuracy)
         self.classifiersStr.append(str(ensembleClassifier))
