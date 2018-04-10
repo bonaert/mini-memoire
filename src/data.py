@@ -58,18 +58,18 @@ def getCohnKanadeData(oneHotEncoded=True):
             relevantImages = [imagesNames[0], imagesNames[-2], imagesNames[-1]]
 
             # First image corresponds to neutral
-            images.append(getImage(emotion_full_dir + '/' + relevantImages[0]))
-            if oneHotEncoded:
-                emotions.append(CK_NEUTRAL_CODED_EMOTION)
-            else:
-                emotions.append(CK_NEUTRAL_EMOTION_NUM)
+            # images.append(getImage(emotion_full_dir + '/' + relevantImages[0]))
+            # if oneHotEncoded:
+            #     emotions.append(CK_NEUTRAL_CODED_EMOTION)
+            # else:
+            #     emotions.append(CK_NEUTRAL_EMOTION_NUM)
 
             emotion = getCKEmotion(personDir, emotionDir, oneHotEncoded)
             if emotion is None:
                 continue
 
             # Last two images to the real emotion
-            for imageName in relevantImages[1:]:
+            for imageName in relevantImages:
                 images.append(getImage(emotion_full_dir + '/' + imageName))
                 emotions.append(emotion)
 
