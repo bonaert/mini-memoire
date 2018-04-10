@@ -80,28 +80,32 @@ class Runner:
         print(trainXs[0].shape)
 
         for numClassifiers in self.classifierRange:
-            self.accuracies = []
+            roundAccuracies = []
             start = time()
             for i, (trainX, trainY, testX, testY) in enumerate(splittedData, start=1):
-                self.trainAndTest(trainX, trainY, testX, testY, i, numClassifiers)
+                accuracy = self.trainAndTest(trainX, trainY, testX, testY, i, numClassifiers)
+                roundAccuracies.append(accuracy)
 
             # Do stats
             end = time()
             timing = end - start
 
-            averageAccuracy = mean(self.accuracies)
-            information = RunInformation(numClassifiers, round(averageAccuracy, 4), round(timing, 4))
-            self.runInfo.append(information)
-
             # Output results
-            self.saveCurrentResults()
+            self.saveNewResults(numClassifiers, timing, roundAccuracies)
+            self.saveAllResultsToFile()
 
-            print("The accuracy gotten with %d classifiers is %.3f" % (numClassifiers, averageAccuracy))
-            print()
-            print()
+            print("\n\n")
+
         print(self.runInfo)
 
-    def saveCurrentResults(self):
+    def saveNewResults(self, numClassifiers, timing, roundAccuracies):
+        averageAccuracy = mean(roundAccuracies)
+        information = RunInformation(numClassifiers, round(averageAccuracy, 4), round(timing, 4))
+        self.runInfo.append(information)
+
+        print("The accuracy gotten with %d classifiers is %.3f" % (numClassifiers, averageAccuracy))
+
+    def saveAllResultsToFile(self):
         df = pd.DataFrame(self.runInfo)
         df.to_csv(self.resultsFileName)
 
@@ -114,12 +118,14 @@ class Runner:
         predictions = timer(lambda: ensembleClassifier.fitAndPredict(trainX, trainY, testX))
         print("Got predictions!")
         accuracy = getAccuracy(predictions, testY)
-        self.accuracies.append(accuracy)
+
         print("The accuracy for this split was: %.3f" % accuracy)
         self.classifiersStr.append(str(ensembleClassifier))
         # Output architecture for the i-th split
         self.archFile.write(str(ensembleClassifier) + '\n\n\n')
         self.archFile.flush()
+
+        return accuracy
 
 
 useJaffe = False
