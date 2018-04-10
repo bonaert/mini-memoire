@@ -3,18 +3,19 @@ import os
 import numpy as np
 from keras.utils import np_utils
 from skimage import io
+from sklearn.preprocessing import LabelEncoder
 
 import utils
 
 
-def getEmotionFromFileName(imageName, oneHotEncoded=True):
+def getPersonAndEmotionFromFileName(imageName, oneHotEncoded=True):
     person, emotionCode, photoNumber, extension = imageName.split('.')
     for (i, potentialEmotion) in enumerate(JAFFE_EMOTIONS):
         if potentialEmotion in emotionCode:
             if oneHotEncoded:
-                return JAFFE_CODED_EMOTIONS[i]
+                return person, JAFFE_CODED_EMOTIONS[i]
             else:
-                return i
+                return person, i
 
     raise Exception("No emotion matched the file %s" % imageName)
 
@@ -23,6 +24,11 @@ def normalizeImage(image):
     # image = image / 2 ** 16
     return image
     # return (image - image.mean()) / (image.std() + 1e-8)
+
+
+def labelEncode(groups):
+    label_encoder = LabelEncoder()
+    return label_encoder.fit_transform(groups)
 
 
 def getCKEmotion(personDir, emotionDir, oneHotEncoded):
@@ -47,6 +53,7 @@ def getCKEmotion(personDir, emotionDir, oneHotEncoded):
 def getCohnKanadeData(oneHotEncoded=True):
     images = []
     emotions = []
+    people = []
     cohn_kanade_dir = utils.COHN_KANADE_PROCESSED_IMAGES_DIR
 
     for personDir in os.listdir(cohn_kanade_dir):
@@ -72,19 +79,23 @@ def getCohnKanadeData(oneHotEncoded=True):
             for imageName in relevantImages:
                 images.append(getImage(emotion_full_dir + '/' + imageName))
                 emotions.append(emotion)
+                people.append(personDir)
 
-    return np.array(images), np.array(emotions)
+    return np.array(images), np.array(emotions), labelEncode(people)
 
 
 def getJAFFEData(oneHotEncoded=True):
     images = []
     emotions = []
+    people = []
     for imageName, fullPath in utils.getJAFFEImageNames():
         image = getImage(fullPath)
         images.append(image)
-        emotions.append(getEmotionFromFileName(imageName, oneHotEncoded))
+        person, emotion = getPersonAndEmotionFromFileName(imageName, oneHotEncoded)
+        emotions.append(emotion)
+        people.append(person)
 
-    return np.array(images), np.array(emotions)
+    return np.array(images), np.array(emotions), labelEncode(people)
     # NUMDATA = 800
     # return np.array(images[:NUMDATA]), np.array(emotions[:NUMDATA])
 

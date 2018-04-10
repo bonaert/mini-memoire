@@ -63,12 +63,12 @@ class Runner:
             self.resultsFileName = getFreeFileName('resultsJaffe')
             self.outputSize = JAFFE_NUM_EMOTIONS
             self.oneHotEmotions = JAFFE_CODED_EMOTIONS
-            self.images, self.y = getJAFFEData(oneHotEncoded=False)
+            self.images, self.y, self.groups = getJAFFEData(oneHotEncoded=False)
         else:
             self.resultsFileName = getFreeFileName('resultsCK')
             self.outputSize = CK_NUM_EMOTIONS
             self.oneHotEmotions = CK_CODED_EMOTIONS
-            self.images, self.y = getCohnKanadeData(oneHotEncoded=False)
+            self.images, self.y, self.groups = getCohnKanadeData(oneHotEncoded=False)
 
         # Re-shape images to add a third value
         self.images = self.images.reshape(self.images.shape[0], self.images.shape[1], self.images.shape[2], 1)
@@ -90,7 +90,7 @@ class Runner:
 
     def run(self):
         splittedData = getXandYSplits(self.images, self.y, self.oneHotEmotions, self.randomGenerator,
-                                      self.personIndependent)
+                                      self.personIndependent, self.groups)
 
         for numClassifiers in self.classifierRange:
             roundAccuracies = []
