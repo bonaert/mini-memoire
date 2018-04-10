@@ -85,3 +85,11 @@ def getAccuracy(predicted, real):
             numCorrect += 1
     return numCorrect / length
     # return categorical_accuracy(real, predicted)
+
+
+def getFreeFileName(nameWithoutExtension, ext='csv'):
+    i = 0
+    while os.path.exists("%s%s.%s" % (nameWithoutExtension, i, ext)):
+        i += 1
+
+    return "%s%s.%s" % (nameWithoutExtension, i, ext)
