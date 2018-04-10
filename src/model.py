@@ -121,11 +121,16 @@ class Runner:
 
         print("The accuracy for this split was: %.3f" % accuracy)
         self.classifiersStr.append(str(ensembleClassifier))
+
         # Output architecture for the i-th split
-        self.archFile.write(str(ensembleClassifier) + '\n\n\n')
-        self.archFile.flush()
+        self.writeArchitectureToFile(ensembleClassifier)
 
         return accuracy
+
+    def writeArchitectureToFile(self, ensembleClassifier):
+
+        self.archFile.write(str(ensembleClassifier) + '\n\n\n')
+        self.archFile.flush()
 
 
 useJaffe = False
