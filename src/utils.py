@@ -83,7 +83,8 @@ def getAccuracy(predicted, real):
     for i in range(length):
         if np.argmax(predicted[i]) == np.argmax(real[i]):
             numCorrect += 1
-    return numCorrect / length
+    accuracy = numCorrect / length
+    return accuracy
     # return categorical_accuracy(real, predicted)
 
 
