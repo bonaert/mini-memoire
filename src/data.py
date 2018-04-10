@@ -112,7 +112,7 @@ CK_EMOTIONS = [
     'HAPPY',
     'SADNESS',
     'SUPRISE',
-    'NEUTRAL'
+    # 'NEUTRAL'
 ]
 CK_NUM_EMOTIONS = len(CK_EMOTIONS)
 CK_CODED_EMOTIONS = [np_utils.to_categorical(i, CK_NUM_EMOTIONS) for i in range(CK_NUM_EMOTIONS)]
