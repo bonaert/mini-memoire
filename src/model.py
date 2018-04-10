@@ -26,7 +26,7 @@ def getXandYSplits(X, y, oneHotEmotions, n_splits=5):
     """
     :return: trainXs, trainYs, testXs, testYs
     """
-    skf = KFold(n_splits=n_splits)
+    skf = StratifiedKFold(n_splits=n_splits)
 
     result = []
     for train, test in skf.split(X, y):
@@ -76,8 +76,7 @@ class Runner:
         self.archFile = None
 
     def run(self):
-        splittedData = trainXs, trainYs, testXs, testYs = getXandYSplits(self.images, self.y, self.oneHotEmotions)
-        print(trainXs[0].shape)
+        splittedData = getXandYSplits(self.images, self.y, self.oneHotEmotions)
 
         for numClassifiers in self.classifierRange:
             roundAccuracies = []
@@ -85,10 +84,7 @@ class Runner:
             for i, (trainX, trainY, testX, testY) in enumerate(splittedData, start=1):
                 accuracy = self.trainAndTest(trainX, trainY, testX, testY, i, numClassifiers)
                 roundAccuracies.append(accuracy)
-
-            # Do stats
-            end = time()
-            timing = end - start
+            timing = time() - start
 
             # Output results
             self.saveNewResults(numClassifiers, timing, roundAccuracies)
@@ -128,7 +124,6 @@ class Runner:
         return accuracy
 
     def writeArchitectureToFile(self, ensembleClassifier):
-
         self.archFile.write(str(ensembleClassifier) + '\n\n\n')
         self.archFile.flush()
 
