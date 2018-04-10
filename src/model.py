@@ -6,7 +6,7 @@ import pandas as pd
 
 from statistics import mean
 
-from sklearn.model_selection import StratifiedKFold, KFold
+from sklearn.model_selection import StratifiedKFold, KFold, GroupKFold
 
 from EnsembleClassifier import createEnsembleClassifier
 from keras import backend as K
@@ -19,17 +19,25 @@ from cnn import saveParams
 
 K.set_image_data_format('channels_last')
 
-RunInformation = namedtuple('RunInformation', ['numClassifiers', 'accuracy', 'timing'])
+DEFAULT_NUM_SPLITS = 5
 
 
-def getXandYSplits(X, y, oneHotEmotions, n_splits=5):
+def getXandYSplits(X, y, oneHotEmotions, randomGenerator, personIndependent, groups=None, n_splits=DEFAULT_NUM_SPLITS):
     """
     :return: trainXs, trainYs, testXs, testYs
     """
-    skf = StratifiedKFold(n_splits=n_splits)
+    if personIndependent:
+        skf = StratifiedKFold(n_splits=n_splits)   # Previous shuffle = True
+        splittedData = skf.split(X, y)
+    else:
+        assert(groups is not None)
+        gkf = GroupKFold(n_splits=3)
+        splittedData = gkf.split(X, y, groups=groups)
 
     result = []
-    for train, test in skf.split(X, y):
+    shuffle = randomGenerator.shuffle
+    for train, test in splittedData:
+        shuffle(train), shuffle(test)
         Xtrain, Ytrain, Xtest, Ytest = X[train], y[train], X[test], y[test]
         YtrainEncoded = np.array([oneHotEmotions[i] for i in Ytrain])
         YtestEncoded = np.array([oneHotEmotions[i] for i in Ytest])
@@ -39,12 +47,17 @@ def getXandYSplits(X, y, oneHotEmotions, n_splits=5):
     return result
 
 
+accuracyNames = ['accuracy%d' % i for i in range(1, 1 + DEFAULT_NUM_SPLITS)]
+RunInformation = namedtuple('RunInformation', ['numClassifiers', 'accuracy', 'timing', *accuracyNames])
+
+
 class Runner:
-    def __init__(self, classifierRange=list(range(5, 81, 5)), useJaffe=False):
+    def __init__(self, classifierRange=list(range(5, 81, 5)), useJaffe=False, personIndependent=True):
         self.classifiersStr = []
         self.runInfo = []
         self.classifierRange = classifierRange
         self.useJaffe = useJaffe
+        self.personIndependent = personIndependent
 
         if self.useJaffe:
             self.resultsFileName = getFreeFileName('resultsJaffe')
@@ -76,7 +89,8 @@ class Runner:
         self.archFile = None
 
     def run(self):
-        splittedData = getXandYSplits(self.images, self.y, self.oneHotEmotions)
+        splittedData = getXandYSplits(self.images, self.y, self.oneHotEmotions, self.randomGenerator,
+                                      self.personIndependent)
 
         for numClassifiers in self.classifierRange:
             roundAccuracies = []
@@ -96,7 +110,7 @@ class Runner:
 
     def saveNewResults(self, numClassifiers, timing, roundAccuracies):
         averageAccuracy = mean(roundAccuracies)
-        information = RunInformation(numClassifiers, round(averageAccuracy, 4), round(timing, 4))
+        information = RunInformation(numClassifiers, round(averageAccuracy, 4), round(timing, 4), *roundAccuracies)
         self.runInfo.append(information)
 
         print("The accuracy gotten with %d classifiers is %.3f" % (numClassifiers, averageAccuracy))
@@ -130,4 +144,5 @@ class Runner:
 
 useJaffe = False
 classifierRange = list(range(5, 81, 5))
-runner = Runner(classifierRange=classifierRange, useJaffe=useJaffe)
+personIndependent = True
+runner = Runner(classifierRange=classifierRange, useJaffe=useJaffe, personIndependent=personIndependent)
