@@ -18,8 +18,8 @@ def getMode(classifier_predictions_list):
 
 
 class EnsembleClassifier:
-    def __init__(self, numClassifiers, createClassifierFunction):
-        self.numClassifiers = numClassifiers
+    def __init__(self, num_classifiers, createClassifierFunction):
+        self.numClassifiers = num_classifiers
         self.createClassifierFunction = createClassifierFunction
         self.classifiersStr = []
 
@@ -45,8 +45,6 @@ class EnsembleClassifier:
             oneHotEmotions = CK_CODED_EMOTIONS
         else:
             oneHotEmotions = JAFFE_CODED_EMOTIONS
-
-
 
         oneHotPredictions = [
             oneHotEmotions[np.argmax(classifierPrediction)] for
@@ -84,6 +82,7 @@ class EnsembleClassifier:
         return res
 
 
-def createEnsembleClassifier(numClassifiers, outputSize, randomGenerator):
-    return EnsembleClassifier(numClassifiers,
-                              createClassifierFunction=lambda: createClassifier(outputSize, randomGenerator))
+def createEnsembleClassifier(num_classifiers, config, output_size, random_generator):
+    return EnsembleClassifier(
+        num_classifiers,
+        createClassifierFunction=lambda: createClassifier(config, output_size, random_generator))

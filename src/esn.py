@@ -1,32 +1,25 @@
 from collections import namedtuple
 
+from conf import ESNGenerationConfiguration
 from pyESN.pyESN import ESN
 
 EsnConfiguration = namedtuple("EsnConfiguration", ['reservoirSize', 'spectralRadius', 'degreeSparsity'])
 
 
-def createESN(inputSize, outputSize, randomState, reservoirSize=None, spectralRadius=None, degreeSparsity=None):
-    if reservoirSize is None:
-        reservoirSize = randomState.choice([100, 200, 300, 400, 500, 600, 700, 800, 900, 1000])
-    if spectralRadius is None:
-        spectralRadius = randomState.choice([0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0])
-        # spectralRadius = randomState.uniform()
-    if degreeSparsity is None:
-        # Reduced range temporarily to avoid division by zero in pyESN
-        # TODO: see how to fix this
-        # degreeSparsity = randomState.uniform(0, 0.8)
-        # degreeSparsity = randomState.choice([0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0])
-        degreeSparsity = randomState.choice([0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8])
+def createESN(esn_gen_conf: ESNGenerationConfiguration, input_size, output_size, random_state):
+    reservoir_size = random_state.choice(esn_gen_conf.RESERVOIR_SIZE_CHOICES)
+    spectralRadius = random_state.choice(esn_gen_conf.SPECTRAL_RADIUS_CHOICES)
+    degreeSparsity = random_state.choice(esn_gen_conf.DEGREE_SPARSITY_CHOICES)
 
-    esn = ESN(n_inputs=inputSize,
-              n_outputs=outputSize,
-              n_reservoir=reservoirSize,
+    esn = ESN(n_inputs=input_size,
+              n_outputs=output_size,
+              n_reservoir=reservoir_size,
               spectral_radius=spectralRadius,
               sparsity=degreeSparsity,
               out_activation=lambda x: x,  # K.softmax,  # lambda x: x,  # logit logistic function ,
               inverse_out_activation=lambda x: x,  # logit = inverse logistic function
-              random_state=randomState,
+              random_state=random_state,
               silent=False)
 
-    esn.esnConfiguration = EsnConfiguration(reservoirSize, round(spectralRadius, 4), round(degreeSparsity, 4))
+    esn.esnConfiguration = EsnConfiguration(reservoir_size, round(spectralRadius, 4), round(degreeSparsity, 4))
     return esn

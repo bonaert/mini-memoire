@@ -1,11 +1,16 @@
 from cnn import CNN
+from conf import Configuration
 from esn import createESN
 
 
 class CESN:
-    def __init__(self, inputShape, randomGenerator, outputSize):
-        self.cnn = CNN(inputShape, randomGenerator)
-        self.esn = createESN(inputSize=self.cnn.outputSize, outputSize=outputSize, randomState=randomGenerator)
+    def __init__(self, input_shape, config: Configuration, random_generator, output_size):
+        self.cnn = CNN(config.CNN_GEN_CONF, input_shape, random_generator)
+        self.esn = createESN(esn_gen_conf=config.ESN_GEN_CONF,
+                             input_size=self.cnn.outputSize,
+                             output_size=output_size,
+                             random_state=random_generator,
+                             )
 
     def fit(self, X, y):
         CNNProcessedInput = self.cnn.predict(X)
@@ -25,5 +30,5 @@ class CESN:
         return res
 
 
-def createClassifier(outputSize, randomGenerator):
-    return CESN((64, 64, 1), randomGenerator, outputSize)
+def createClassifier(config: Configuration, output_size, random_generator):
+    return CESN((64, 64, 1), config, random_generator, output_size)

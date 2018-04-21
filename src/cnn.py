@@ -3,27 +3,37 @@ from collections import namedtuple
 from keras import Sequential
 from keras.layers import Conv2D, MaxPooling2D, Flatten
 
+from conf import CNNGenerationConfiguration, Configuration
+
 LayerInfo = namedtuple("LayerInfo", ['numKernels', 'kernelSize', 'hasPool', 'poolSize'])
 
-LAYER_RANGE = [2, 3, 4]
-NUM_KERNELS_MIN, NUM_KERNELS_MAX = 10, 100
-KERNEL_SIZE_MIN, KERNEL_SIZE_MAX = 2, 5
-POOL_SIZE_RANGE = [2, 2]
-HAS_POOL = True
 
+def saveParams(f, config: Configuration):
+    cnnGenConf = config.CNN_GEN_CONF
+    esnGenConf = config.ESN_GEN_CONF
+    runnerConf = config.RUNNER_CONF
 
-def saveParams(f, datasetName, personDependent):
-    f.write("Layer range: %s \n" % LAYER_RANGE)
-    f.write("Num Kernels: Min - %d, Max - %d\n" % (NUM_KERNELS_MIN, NUM_KERNELS_MAX))
-    f.write("Kernel Size: Min - %d, Max - %d\n" % (KERNEL_SIZE_MIN, KERNEL_SIZE_MAX))
-    f.write("Pool Size range: %s \n" % POOL_SIZE_RANGE)
-    f.write("Has pool: %s\n" % HAS_POOL)
-    f.write("Dataset: %s\n" % datasetName)
-    f.write("Person Dependent: %s\n" % personDependent)
+    # Write cnn gen conf
+    f.write("Layer range: %s \n" % cnnGenConf.LAYER_RANGE)
+    f.write("Num Kernels: Min - %d, Max - %d\n" % (cnnGenConf.NUM_KERNELS_MIN, cnnGenConf.NUM_KERNELS_MAX))
+    f.write("Kernel Size: Min - %d, Max - %d\n" % (cnnGenConf.KERNEL_SIZE_MIN, cnnGenConf.KERNEL_SIZE_MAX))
+    f.write("Pool Size range: %s \n" % cnnGenConf.POOL_SIZE_RANGE)
+    f.write("Has pool: %s\n" % cnnGenConf.HAS_POOL)
+
+    # Write esn gen conf
+    f.write("Sparsity degree choices: %s \n" % esnGenConf.DEGREE_SPARSITY_CHOICES)
+    f.write("Spectral radius choices: %s \n" % esnGenConf.SPECTRAL_RADIUS_CHOICES)
+    f.write("Reservoir size choices: %s \n" % esnGenConf.RESERVOIR_SIZE_CHOICES)
+
+    # Write runner conf
+    f.write("Classifier range: %s\n" % runnerConf.CLASSIFIER_RANGE)
+    f.write("Dataset: %s\n" % runnerConf.dataset_name())
+    f.write("Person Dependent: %s\n" % runnerConf.PERSON_DEPENDENT)
+
     f.flush()
 
 
-def generateCNNParameters(random_generator):
+def generateCNNParameters(cnn_gen_conf: CNNGenerationConfiguration, random_generator):
     """
     Generates random parameters for a CNN, using the provided random number generator.
     It returns a list of LayerInfo named tuples (whose length is the number of layer),
@@ -33,27 +43,26 @@ def generateCNNParameters(random_generator):
     - The pool size of the MaxPooling Layer (if there is one)
     """
     # numLayers = random_generator.choice([2, 3, 4, 5, 6])
-    numLayers = random_generator.choice(LAYER_RANGE)
+    numLayers = random_generator.choice(cnn_gen_conf.LAYER_RANGE)
     layersInfos = []
     for i in range(numLayers):
         # minNumKernels = 20 if i == 0 else layersInfos[-1].numKernels
         layerInfo = LayerInfo(
-            numKernels=random_generator.randint(NUM_KERNELS_MIN, NUM_KERNELS_MAX),
-            kernelSize=random_generator.randint(KERNEL_SIZE_MIN, KERNEL_SIZE_MAX),
-            # hasPool=random_generator.choice([True, False]),
-            hasPool=True,  # As specified by article, in part III.C
-            poolSize=random_generator.choice(POOL_SIZE_RANGE))
+            numKernels=random_generator.randint(cnn_gen_conf.NUM_KERNELS_MIN, cnn_gen_conf.NUM_KERNELS_MAX),
+            kernelSize=random_generator.randint(cnn_gen_conf.KERNEL_SIZE_MIN, cnn_gen_conf.KERNEL_SIZE_MAX),
+            hasPool=cnn_gen_conf.HAS_POOL,
+            poolSize=random_generator.choice(cnn_gen_conf.POOL_SIZE_RANGE))
         layersInfos.append(layerInfo)
 
     return layersInfos
 
 
 class CNN:
-    def __init__(self, input_shape, random_generator):
+    def __init__(self, cnn_gen_conf: CNNGenerationConfiguration, input_shape, random_generator):
         dim = input_shape[0]
 
         self.model = Sequential()
-        self.layersInfo = generateCNNParameters(random_generator)
+        self.layersInfo = generateCNNParameters(cnn_gen_conf, random_generator)
 
         for (layerNum, layer) in enumerate(self.layersInfo):
             if layerNum == 0:
