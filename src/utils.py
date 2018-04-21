@@ -85,7 +85,6 @@ def getAccuracy(predicted, real):
             numCorrect += 1
     accuracy = numCorrect / length
     return accuracy
-    # return categorical_accuracy(real, predicted)
 
 
 def getFreeFileName(nameWithoutExtension, ext='csv'):

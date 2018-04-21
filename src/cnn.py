@@ -5,21 +5,22 @@ from keras.layers import Conv2D, MaxPooling2D, Flatten
 
 LayerInfo = namedtuple("LayerInfo", ['numKernels', 'kernelSize', 'hasPool', 'poolSize'])
 
-
-LAYER_RANGE = [2]
+LAYER_RANGE = [2, 3, 4]
 NUM_KERNELS_MIN, NUM_KERNELS_MAX = 10, 100
 KERNEL_SIZE_MIN, KERNEL_SIZE_MAX = 2, 5
-POOL_SIZE_RANGE = [2]
+POOL_SIZE_RANGE = [2, 2]
 HAS_POOL = True
 
-def saveParams(f):
+
+def saveParams(f, datasetName, personDependent):
     f.write("Layer range: %s \n" % LAYER_RANGE)
     f.write("Num Kernels: Min - %d, Max - %d\n" % (NUM_KERNELS_MIN, NUM_KERNELS_MAX))
     f.write("Kernel Size: Min - %d, Max - %d\n" % (KERNEL_SIZE_MIN, KERNEL_SIZE_MAX))
     f.write("Pool Size range: %s \n" % POOL_SIZE_RANGE)
-    f.write("Has pool: %s" % HAS_POOL)
+    f.write("Has pool: %s\n" % HAS_POOL)
+    f.write("Dataset: %s\n" % datasetName)
+    f.write("Person Dependent: %s\n" % personDependent)
     f.flush()
-
 
 
 def generateCNNParameters(random_generator):

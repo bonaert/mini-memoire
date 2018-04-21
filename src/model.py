@@ -14,7 +14,7 @@ from keras import backend as K
 # import matplotlib.pyplot as plt
 from data import getCohnKanadeData, getJAFFEData, JAFFE_NUM_EMOTIONS, CK_NUM_EMOTIONS, JAFFE_CODED_EMOTIONS, \
     CK_CODED_EMOTIONS
-from utils import timer, getAccuracy, getFreeFileName
+from utils import timer, getAccuracy, getFreeFileName, createDirectoriesIfNeeded
 from cnn import saveParams
 
 K.set_image_data_format('channels_last')
@@ -22,16 +22,16 @@ K.set_image_data_format('channels_last')
 DEFAULT_NUM_SPLITS = 5
 
 
-def getXandYSplits(X, y, oneHotEmotions, randomGenerator, personIndependent, groups=None, n_splits=DEFAULT_NUM_SPLITS):
+def getXandYSplits(X, y, oneHotEmotions, randomGenerator, personDependent, groups=None, n_splits=DEFAULT_NUM_SPLITS):
     """
     :return: trainXs, trainYs, testXs, testYs
     """
-    if personIndependent:
+    if personDependent:
         skf = StratifiedKFold(n_splits=n_splits)   # Previous shuffle = True
         splittedData = skf.split(X, y)
     else:
         assert(groups is not None)
-        gkf = GroupKFold(n_splits=3)
+        gkf = GroupKFold(n_splits=n_splits)
         splittedData = gkf.split(X, y, groups=groups)
 
     result = []
@@ -52,23 +52,31 @@ RunInformation = namedtuple('RunInformation', ['numClassifiers', 'accuracy', 'ti
 
 
 class Runner:
-    def __init__(self, classifierRange=list(range(5, 81, 5)), useJaffe=False, personIndependent=True):
+    def __init__(self, classifierRange=list(range(5, 81, 5)), useJaffe=False, personDependent=True):
         self.classifiersStr = []
         self.runInfo = []
         self.classifierRange = classifierRange
         self.useJaffe = useJaffe
-        self.personIndependent = personIndependent
+        self.personDependent = personDependent
 
+        if personDependent:
+            extension = 'PD'
+        else:
+            extension = 'PI'
+
+        createDirectoriesIfNeeded('results/random.txt')
         if self.useJaffe:
-            self.resultsFileName = getFreeFileName('resultsJaffe')
+            self.resultsFileName = getFreeFileName('results/resultsJaffe' + extension)
             self.outputSize = JAFFE_NUM_EMOTIONS
             self.oneHotEmotions = JAFFE_CODED_EMOTIONS
             self.images, self.y, self.groups = getJAFFEData(oneHotEncoded=False)
+            self.datasetName = 'JAFFE'
         else:
-            self.resultsFileName = getFreeFileName('resultsCK')
+            self.resultsFileName = getFreeFileName('results/resultsCK' + extension)
             self.outputSize = CK_NUM_EMOTIONS
             self.oneHotEmotions = CK_CODED_EMOTIONS
             self.images, self.y, self.groups = getCohnKanadeData(oneHotEncoded=False)
+            self.datasetName = 'CK'
 
         # Re-shape images to add a third value
         self.images = self.images.reshape(self.images.shape[0], self.images.shape[1], self.images.shape[2], 1)
@@ -80,7 +88,7 @@ class Runner:
         self.randomGenerator = np.random.RandomState()
 
         with open(self.paramsFileName, 'w') as paramsFile:
-            saveParams(paramsFile)
+            saveParams(paramsFile, self.datasetName, self.personDependent)
 
         with open(self.archFileName, 'w') as archFile:
             self.archFile = archFile
@@ -90,7 +98,7 @@ class Runner:
 
     def run(self):
         splittedData = getXandYSplits(self.images, self.y, self.oneHotEmotions, self.randomGenerator,
-                                      self.personIndependent, self.groups)
+                                      self.personDependent, self.groups)
 
         for numClassifiers in self.classifierRange:
             roundAccuracies = []
@@ -142,7 +150,8 @@ class Runner:
         self.archFile.flush()
 
 
-useJaffe = False
+useJaffe = True
 classifierRange = list(range(5, 81, 5))
-personIndependent = True
-runner = Runner(classifierRange=classifierRange, useJaffe=useJaffe, personIndependent=personIndependent)
+# Person dependent = same person can appear in training and test set
+personDependent = False
+runner = Runner(classifierRange=classifierRange, useJaffe=useJaffe, personDependent=personDependent)

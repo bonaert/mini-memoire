@@ -95,9 +95,8 @@ def getJAFFEData(oneHotEncoded=True):
         emotions.append(emotion)
         people.append(person)
 
-    return np.array(images), np.array(emotions), labelEncode(people)
-    # NUMDATA = 800
-    # return np.array(images[:NUMDATA]), np.array(emotions[:NUMDATA])
+    encodedPeople = labelEncode(people)
+    return np.array(images), np.array(emotions), encodedPeople
 
 
 def getImage(fullPath):
