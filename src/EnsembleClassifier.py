@@ -1,5 +1,5 @@
 import numpy as np
-from tqdm import tqdm
+from sklearn.base import ClassifierMixin, BaseEstimator
 
 from data import CK_CODED_EMOTIONS, JAFFE_NUM_EMOTIONS, JAFFE_CODED_EMOTIONS, CK_NUM_EMOTIONS
 from cesn import createClassifier
@@ -19,9 +19,11 @@ def getMode(classifier_predictions_list):
 
 class EnsembleClassifier:
     def __init__(self, num_classifiers, createClassifierFunction):
-        self.numClassifiers = num_classifiers
+        self.num_classifiers = num_classifiers
         self.createClassifierFunction = createClassifierFunction
         self.classifiersStr = []
+
+
 
     def predict(self, X):
         predictions = self.getAllPredictions(X)
@@ -30,7 +32,7 @@ class EnsembleClassifier:
 
     def getAllPredictions(self, X):
         predictions = []
-        for classifier in tqdm(self.classifiers):
+        for classifier in self.classifiers:
             classifierPredictions = classifier.predict(X)
             oneHotPredictions = [
                 CK_CODED_EMOTIONS[np.argmax(classifierPrediction)] for
@@ -63,7 +65,7 @@ class EnsembleClassifier:
         when we're dealing with a huge number of classifiers.
         """
         predictions = []
-        for i in tqdm(range(self.numClassifiers)):
+        for i in range(self.num_classifiers):
             classifier = self.createClassifierFunction()
             print("Classifier %d" % (i + 1))
             print(classifier)
