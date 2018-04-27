@@ -14,7 +14,7 @@ class CESN:
 
     def fit(self, X, y):
         CNNProcessedInput = self.cnn.predict(X)
-        self.esn.fit(CNNProcessedInput, y, inspect=True)
+        self.esn.fit(CNNProcessedInput, y, inspect=False)
 
     def predict(self, X):
         CNNProcessedInput = self.cnn.predict(X)

@@ -14,19 +14,19 @@ def saveParams(f, config: Configuration):
     runnerConf = config.RUNNER_CONF
 
     # Write cnn gen conf
-    f.write("Layer range: %s \n" % cnnGenConf.LAYER_RANGE)
+    f.write("Layer range: %s \n" % list(cnnGenConf.LAYER_RANGE))
     f.write("Num Kernels: Min - %d, Max - %d\n" % (cnnGenConf.NUM_KERNELS_MIN, cnnGenConf.NUM_KERNELS_MAX))
     f.write("Kernel Size: Min - %d, Max - %d\n" % (cnnGenConf.KERNEL_SIZE_MIN, cnnGenConf.KERNEL_SIZE_MAX))
-    f.write("Pool Size range: %s \n" % cnnGenConf.POOL_SIZE_RANGE)
+    f.write("Pool Size range: %s \n" % list(cnnGenConf.POOL_SIZE_RANGE))
     f.write("Has pool: %s\n" % cnnGenConf.HAS_POOL)
 
     # Write esn gen conf
-    f.write("Sparsity degree choices: %s \n" % esnGenConf.DEGREE_SPARSITY_CHOICES)
-    f.write("Spectral radius choices: %s \n" % esnGenConf.SPECTRAL_RADIUS_CHOICES)
-    f.write("Reservoir size choices: %s \n" % esnGenConf.RESERVOIR_SIZE_CHOICES)
+    f.write("Sparsity degree choices: %s \n" % list(esnGenConf.DEGREE_SPARSITY_CHOICES))
+    f.write("Spectral radius choices: %s \n" % list(esnGenConf.SPECTRAL_RADIUS_CHOICES))
+    f.write("Reservoir size choices: %s \n" % list(esnGenConf.RESERVOIR_SIZE_CHOICES))
 
     # Write runner conf
-    f.write("Classifier range: %s\n" % runnerConf.CLASSIFIER_RANGE)
+    f.write("Classifier range: %s\n" % list(runnerConf.CLASSIFIER_RANGE))
     f.write("Dataset: %s\n" % runnerConf.dataset_name())
     f.write("Person Dependent: %s\n" % runnerConf.PERSON_DEPENDENT)
 

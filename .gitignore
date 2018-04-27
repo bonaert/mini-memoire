@@ -4,3 +4,4 @@ datasets/
 venv
 .vscode/
 *.pyc
+.idea/

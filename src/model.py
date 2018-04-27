@@ -53,10 +53,22 @@ RunInformation = namedtuple('RunInformation', ['numClassifiers', 'accuracy', 'ti
 
 
 class Runner:
-    def __init__(self, config: Configuration):
 
-        # classifierRange = list(range(5, 81, 5)), useJaffe = False, personDependent = True):
+    @staticmethod
+    def getData(useJAFFE, randomGenerator, personDependent):
+        if useJAFFE:
+            oneHotEmotions = JAFFE_CODED_EMOTIONS
+            images, y, groups = getJAFFEData(oneHotEncoded=False)
+        else:
+            oneHotEmotions = CK_CODED_EMOTIONS
+            images, y, groups = getCohnKanadeData(oneHotEncoded=False)
 
+        # Re-shape images to add a third value
+        images = images.reshape(images.shape[0], images.shape[1], images.shape[2], 1)
+
+        return getXandYSplits(images, y, oneHotEmotions, randomGenerator, personDependent, groups)
+
+    def __init__(self, config: Configuration, splitted_data=None, save_params=True):
         self.config = config
         self.classifiersStr = []
         self.runInfo = []
@@ -73,29 +85,25 @@ class Runner:
         if self.useJaffe:
             self.resultsFileName = getFreeFileName('results/resultsJaffe' + extension)
             self.outputSize = JAFFE_NUM_EMOTIONS
-            self.oneHotEmotions = JAFFE_CODED_EMOTIONS
-            self.images, self.y, self.groups = getJAFFEData(oneHotEncoded=False)
         else:
             self.resultsFileName = getFreeFileName('results/resultsCK' + extension)
             self.outputSize = CK_NUM_EMOTIONS
-            self.oneHotEmotions = CK_CODED_EMOTIONS
-            self.images, self.y, self.groups = getCohnKanadeData(oneHotEncoded=False)
-
-        # Re-shape images to add a third value
-        self.images = self.images.reshape(self.images.shape[0], self.images.shape[1], self.images.shape[2], 1)
 
         # Create fileName
         self.archFileName = self.resultsFileName.replace(".csv", ".arch")
         self.paramsFileName = self.resultsFileName.replace(".csv", ".params")
 
         self.randomGenerator = np.random.RandomState()
-        self.splittedData = getXandYSplits(
-            self.images, self.y, self.oneHotEmotions, self.randomGenerator,
-            self.personDependent, self.groups
-        )
+        self.archFile = None
 
-        with open(self.paramsFileName, 'w') as paramsFile:
-            saveParams(paramsFile, config)
+        if splitted_data is None:
+            self.splittedData = Runner.getData(self.useJaffe, self.randomGenerator, self.personDependent)
+        else:
+            self.splittedData = splitted_data
+
+        if save_params:
+            with open(self.paramsFileName, 'w') as paramsFile:
+                saveParams(paramsFile, config)
 
     ########################################################
     #                  Optimize config                     #
