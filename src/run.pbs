@@ -1,11 +1,14 @@
 #!/bin/bash -l
 #PBS -l walltime=5:00:00
-#PBS -l nodes=10:ppn=4
-#PBS -l mem=20gb
+#PBS -l nodes=4:ppn=4
+#PBS -l mem=10gb
 #PBS -m abe
 #PBS -M gbonaert@ulb.ac.be
 
 
 cd $PBS_O_WORKDIR  
-python model.py
+echo "Job start"
+date
+python optimizer.py
+echo "Job end"
 
