@@ -9,11 +9,20 @@
 #     scoring='accuracy',
 #     cv=5  # 5-Folds in a StratifiedKFold TODO: add GroupKFold for PI case
 # )
+import sys
+def printToOutput(*args):
+    sys.stdout.write(''.join(map(str, args)))
+    sys.stdout.write("\n")	
+
+
+printToOutput("Started")
 from time import time
 
 import numpy as np
 from conf import ESNGenerationConfiguration, RunnerConfiguration, CNNGenerationConfiguration, Configuration
 from model import Runner
+
+printToOutput("Imported")
 
 esnGenerationConf = ESNGenerationConfiguration(
     reservoir_size_choices=[100, 200, 300, 400, 500, 600, 700, 800, 900, 1000],
@@ -94,20 +103,24 @@ resPI = {(5, (2,), 10, 50, 2, 5): (0.3280177187153931, 383.46290707588196),
 
 results = {}
 
+printToOutput("Set up old dicts")
+
 splitted_data = Runner.getData(runnerConf.USE_JAFFE, np.random.RandomState(), runnerConf.PERSON_DEPENDENT)
+
+printToOutput("Spliited data")
 
 for num_kernels_min, num_kernels_max in num_kernels_choices:
     for kernel_size_min, kernel_size_max in kernel_size_choices:
         for num_classifiers in num_classifiers_choices:
             for layer_range in layer_ranges:
-                print()
+                printToOutput()
                 key = (num_classifiers, layer_range, num_kernels_min, num_kernels_max, kernel_size_min, kernel_size_max)
-                print(key)
-                print()
-                print()
+                printToOutput(key)
+                printToOutput()
+                printToOutput()
 
                 if key in resPI:
-                    print("Skipping: already done")
+                    printToOutput("Skipping: already done")
                     continue
 
                 cnnGenerationConf = CNNGenerationConfiguration(
@@ -129,13 +142,13 @@ for num_kernels_min, num_kernels_max in num_kernels_choices:
                 key = (num_classifiers, layer_range, num_kernels_min, num_kernels_max, kernel_size_min, kernel_size_max)
                 results[key] = (accuracy, end - start)
 
-                print()
-                print(key)
-                print(accuracy)
-                print()
-                print()
-                print(results)
-                print()
-                print()
+                printToOutput()
+                printToOutput(key)
+                printToOutput(accuracy)
+                printToOutput()
+                printToOutput()
+                printToOutput(results)
+                printToOutput()
+                printToOutput()
 
-print(results)
+printToOutput(results)
