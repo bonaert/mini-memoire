@@ -3,6 +3,9 @@ from model import Runner
 
 # Optimal: (2, 3, 4), 10, 50, 2, 5)
 
+useJAFFE = True
+personDependent = True
+
 cnnGenerationConf = CNNGenerationConfiguration(
     layer_range=[2, 3, 4],
     num_kernels_min=10, num_kernels_max=50,
@@ -23,10 +26,10 @@ esnGenerationConf = ESNGenerationConfiguration(
 )
 
 runnerConf = RunnerConfiguration(
-    use_jaffe=True,
+    use_jaffe=useJAFFE,
     classifier_range=list(range(5, 81, 5)),
     # Person dependent = same person can appear in training and test set
-    person_dependent=False
+    person_dependent=personDependent
 )
 
 config = Configuration(runnerConf, cnnGenerationConf, esnGenerationConf)
