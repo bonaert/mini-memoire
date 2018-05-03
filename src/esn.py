@@ -19,7 +19,7 @@ def createESN(esn_gen_conf: ESNGenerationConfiguration, input_size, output_size,
               out_activation=lambda x: x,  # K.softmax,  # lambda x: x,  # logit logistic function ,
               inverse_out_activation=lambda x: x,  # logit = inverse logistic function
               random_state=random_state,
-              silent=False)
+              silent=True)
 
     esn.esnConfiguration = EsnConfiguration(reservoir_size, round(spectralRadius, 4), round(degreeSparsity, 4))
     return esn
