@@ -1,9 +1,9 @@
 #!/bin/bash -l
-#PBS -l walltime=10:00:00
+#PBS -l walltime=20:00:00
 #PBS -l mem=8gb
 #PBS -m abe
 #PBS -M gbonaert@ulb.ac.be
-#PBS -l nodes=1:ppn=8
+#PBS -l nodes=1:ppn=12
 
 module purge
 module load scikit-learn/0.19.1-foss-2017b-Python-3.6.3
