@@ -1,10 +1,17 @@
+from sys import argv
+
+try:
+    script, useJAFFE, personDependent = argv
+    useJAFFE = int(useJAFFE)
+    personDependent = int(personDependent)
+except ValueError:
+    useJAFFE = True
+    personDependent = True
+
 from conf import Configuration, RunnerConfiguration, ESNGenerationConfiguration, CNNGenerationConfiguration
 from model import Runner
 
 # Optimal: (2, 3, 4), 10, 50, 2, 5)
-
-useJAFFE = True
-personDependent = True
 
 cnnGenerationConf = CNNGenerationConfiguration(
     layer_range=[2, 3, 4],
