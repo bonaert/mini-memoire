@@ -5,3 +5,6 @@ venv
 .vscode/
 *.pyc
 .idea/
+*.params
+*.arch
+*.csv
