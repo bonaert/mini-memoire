@@ -22,8 +22,8 @@ def getPersonAndEmotionFromFileName(imageName, oneHotEncoded=True):
 
 def normalizeImage(image):
     # image = image / 2 ** 16
+    # image = (image - image.mean()) / (image.std() + 1e-8)
     return image
-    # return (image - image.mean()) / (image.std() + 1e-8)
 
 
 def labelEncode(groups):
@@ -64,19 +64,20 @@ def getCohnKanadeData(oneHotEncoded=True):
 
             relevantImages = [imagesNames[0], imagesNames[-2], imagesNames[-1]]
 
-            # First image corresponds to neutral
-            # images.append(getImage(emotion_full_dir + '/' + relevantImages[0]))
-            # if oneHotEncoded:
-            #     emotions.append(CK_NEUTRAL_CODED_EMOTION)
-            # else:
-            #     emotions.append(CK_NEUTRAL_EMOTION_NUM)
-
             emotion = getCKEmotion(personDir, emotionDir, oneHotEncoded)
             if emotion is None:
                 continue
 
+            # First image corresponds to neutral
+            images.append(getImage(emotion_full_dir + '/' + relevantImages[0]))
+            if oneHotEncoded:
+                emotions.append(CK_NEUTRAL_CODED_EMOTION)
+            else:
+                emotions.append(CK_NEUTRAL_EMOTION_NUM)
+            people.append(personDir)
+
             # Last two images to the real emotion
-            for imageName in relevantImages:
+            for imageName in relevantImages[1:]:
                 images.append(getImage(emotion_full_dir + '/' + imageName))
                 emotions.append(emotion)
                 people.append(personDir)
@@ -122,7 +123,7 @@ CK_EMOTIONS = [
     'HAPPY',
     'SADNESS',
     'SUPRISE',
-    # 'NEUTRAL'
+    'NEUTRAL'
 ]
 CK_NUM_EMOTIONS = len(CK_EMOTIONS)
 CK_CODED_EMOTIONS = [np_utils.to_categorical(i, CK_NUM_EMOTIONS) for i in range(CK_NUM_EMOTIONS)]
