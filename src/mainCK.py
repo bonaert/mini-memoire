@@ -14,7 +14,7 @@ from model import Runner
 # Optimal: (2, 3, 4), 10, 50, 2, 5)
 
 cnnGenerationConf = CNNGenerationConfiguration(
-    layer_range=[2, 3],
+    layer_range=[2],
     num_kernels_min=10, num_kernels_max=100,
     kernel_size_min=2, kernel_size_max=5,
     pool_size_range=[2, 2],

@@ -6,7 +6,7 @@ import pandas as pd
 
 from statistics import mean
 
-from sklearn.model_selection import StratifiedKFold, GroupKFold
+from sklearn.model_selection import StratifiedKFold, GroupKFold, KFold
 
 from EnsembleClassifier import createEnsembleClassifier
 from keras import backend as K
@@ -28,7 +28,7 @@ def getXandYSplits(X, y, one_hot_emotions, random_generator, person_dependent, g
     :return: trainXs, trainYs, testXs, testYs
     """
     if person_dependent:
-        skf = StratifiedKFold(n_splits=n_splits)  # Previous shuffle = True
+        skf = KFold(n_splits=n_splits)  # Previous shuffle = True
         splittedData = skf.split(X, y)
     else:
         assert (groups is not None)
