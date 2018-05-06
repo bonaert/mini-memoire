@@ -28,7 +28,8 @@ def getXandYSplits(X, y, one_hot_emotions, random_generator, person_dependent, g
     :return: trainXs, trainYs, testXs, testYs
     """
     if person_dependent:
-        skf = KFold(n_splits=n_splits)  # Previous shuffle = True
+        skf = StratifiedKFold(n_splits=n_splits)
+        # skf = KFold(n_splits=n_splits)  # Previous shuffle = True
         splittedData = skf.split(X, y)
     else:
         assert (groups is not None)
@@ -36,9 +37,9 @@ def getXandYSplits(X, y, one_hot_emotions, random_generator, person_dependent, g
         splittedData = gkf.split(X, y, groups=groups)
 
     result = []
-    shuffle = random_generator.shuffle
+    # shuffle = random_generator.shuffle
     for train, test in splittedData:
-        shuffle(train), shuffle(test)
+        # shuffle(train), shuffle(test)
         Xtrain, Ytrain, Xtest, Ytest = X[train], y[train], X[test], y[test]
         YtrainEncoded = np.array([one_hot_emotions[i] for i in Ytrain])
         YtestEncoded = np.array([one_hot_emotions[i] for i in Ytest])
