@@ -5,9 +5,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 
-def buildPath(relPath):
+def buildPath(relative_path):
     dirPath = os.path.dirname(os.path.realpath(__file__))
-    return os.path.join(dirPath, '..', relPath)
+    return os.path.join(dirPath, '..', relative_path)
 
 
 def createDirectoriesIfNeeded(filename):
@@ -26,8 +26,8 @@ def showImage(image):
 JAFFE_DIR = buildPath('datasets/JAFFE/')
 JAFFE_PROCESSED_DIR = buildPath('datasets/transformed/JAFFE/')
 COHN_KANADE_DIR = buildPath('datasets/CohnKanadePlus/')
-COHN_KANADE_EMOTION_DIR = buildPath('datasets/CohnKanadePlus/cohn-kanade-images')
-COHN_KANADE_IMAGES_DIR = buildPath('datasets/CohnKanadePlus/Emotion')
+COHN_KANADE_IMAGES_DIR = buildPath('datasets/CohnKanadePlus/cohn-kanade-images')
+COHN_KANADE_EMOTION_DIR = buildPath('datasets/CohnKanadePlus/Emotion')
 
 COHN_KANADE_PROCESSED_DIR = buildPath('datasets/transformed/CohnKanadePlus/')
 COHN_KANADE_PROCESSED_EMOTION_DIR = buildPath('datasets/transformed/CohnKanadePlus/Emotion')
@@ -50,9 +50,9 @@ def getJAFFEImageNames(transformed=True):
 
 def getCohnKanadeImageNames(transformed=True):
     if transformed:
-        BASEPATH = COHN_KANADE_PROCESSED_DIR + 'cohn-kanade-images'
+        BASEPATH = os.path.join(COHN_KANADE_PROCESSED_DIR, 'cohn-kanade-images')
     else:
-        BASEPATH = COHN_KANADE_DIR + 'cohn-kanade-images'
+        BASEPATH = os.path.join(COHN_KANADE_DIR, 'cohn-kanade-images')
 
     for personDirName in os.listdir(BASEPATH):
         for emotionDirName in os.listdir('%s/%s' % (BASEPATH, personDirName)):
@@ -87,9 +87,9 @@ def getAccuracy(predicted, real):
     return accuracy
 
 
-def getFreeFileName(nameWithoutExtension, ext='csv'):
+def getFreeFileName(name_without_extension, ext='csv'):
     i = 0
-    while os.path.exists("%s%s.%s" % (nameWithoutExtension, i, ext)):
+    while os.path.exists("%s%s.%s" % (name_without_extension, i, ext)):
         i += 1
 
-    return "%s%s.%s" % (nameWithoutExtension, i, ext)
+    return "%s%s.%s" % (name_without_extension, i, ext)
