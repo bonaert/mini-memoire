@@ -1,20 +1,7 @@
 import numpy as np
-from sklearn.base import ClassifierMixin, BaseEstimator
 
-from data import CK_CODED_EMOTIONS, JAFFE_NUM_EMOTIONS, JAFFE_CODED_EMOTIONS, CK_NUM_EMOTIONS
+from data import CK_CODED_EMOTIONS, JAFFE_CODED_EMOTIONS, CK_NUM_EMOTIONS, getMode
 from cesn import createClassifier
-
-
-def getMode(classifier_predictions_list):
-    if len(classifier_predictions_list[0][0]) == JAFFE_NUM_EMOTIONS:
-        oneHotEmotions = JAFFE_CODED_EMOTIONS
-    else:
-        oneHotEmotions = CK_CODED_EMOTIONS
-
-    counts = sum(classifier_predictions_list)
-    maxCountIndex = [np.argmax(row) for row in counts]
-    oneHotModes = np.array([oneHotEmotions[i] for i in maxCountIndex])
-    return oneHotModes
 
 
 class EnsembleClassifier:
@@ -22,8 +9,6 @@ class EnsembleClassifier:
         self.num_classifiers = num_classifiers
         self.createClassifierFunction = createClassifierFunction
         self.classifiersStr = []
-
-
 
     def predict(self, X):
         predictions = self.getAllPredictions(X)

@@ -1,11 +1,38 @@
 import os
 
 import numpy as np
-from keras.utils import np_utils
 from skimage import io
 from sklearn.preprocessing import LabelEncoder
 
 import utils
+
+
+def to_categorical(y, num_classes=None):
+    """Converts a class vector (integers) to binary class matrix.
+
+    E.g. for use with categorical_crossentropy.
+
+    # Arguments
+        y: class vector to be converted into a matrix
+            (integers from 0 to num_classes).
+        num_classes: total number of classes.
+
+    # Returns
+        A binary matrix representation of the input.
+    """
+    y = np.array(y, dtype='int')
+    input_shape = y.shape
+    if input_shape and input_shape[-1] == 1 and len(input_shape) > 1:
+        input_shape = tuple(input_shape[:-1])
+    y = y.ravel()
+    if not num_classes:
+        num_classes = np.max(y) + 1
+    n = y.shape[0]
+    categorical = np.zeros((n, num_classes))
+    categorical[np.arange(n), y] = 1
+    output_shape = input_shape + (num_classes,)
+    categorical = np.reshape(categorical, output_shape)
+    return categorical
 
 
 def getPersonAndEmotionFromFileName(imageName, oneHotEncoded=True):
@@ -37,8 +64,14 @@ def getCKEmotion(personDir, emotionDir, oneHotEncoded):
 
     try:
         for name in os.listdir(path):
-            with open(path + '/' + name) as f:
-                line = f.readline()
+            path_name = path + '/' + name
+            with open(path_name) as f:
+                try:
+                    line = f.readline()
+                except UnicodeDecodeError:
+                    print(path_name)
+                    raise Exception()
+
                 emotionNum = int(float(line.strip()))
                 if oneHotEncoded:
                     return CK_CODED_EMOTIONS[emotionNum - 1]
@@ -77,8 +110,9 @@ def getCohnKanadeData(oneHotEncoded=True):
             # people.append(personDir)
 
             # Last two images to the real emotion
-            for imageName in relevantImages: # relevantImages[1:]:
-                images.append(getImage(emotion_full_dir + '/' + imageName))
+            for imageName in relevantImages:  # relevantImages[1:]:
+                image = getImage(emotion_full_dir + '/' + imageName)
+                images.append(image)
                 emotions.append(emotion)
                 people.append(personDir)
 
@@ -114,7 +148,7 @@ JAFFE_EMOTIONS = [
     'SU'  # SURPRISE
 ]
 JAFFE_NUM_EMOTIONS = len(JAFFE_EMOTIONS)
-JAFFE_CODED_EMOTIONS = [np_utils.to_categorical(i, JAFFE_NUM_EMOTIONS) for i in range(JAFFE_NUM_EMOTIONS)]
+JAFFE_CODED_EMOTIONS = [to_categorical(i, JAFFE_NUM_EMOTIONS) for i in range(JAFFE_NUM_EMOTIONS)]
 CK_EMOTIONS = [
     'ANGER',
     'CONTEMPT',
@@ -126,6 +160,19 @@ CK_EMOTIONS = [
     'NEUTRAL'
 ]
 CK_NUM_EMOTIONS = len(CK_EMOTIONS)
-CK_CODED_EMOTIONS = [np_utils.to_categorical(i, CK_NUM_EMOTIONS) for i in range(CK_NUM_EMOTIONS)]
+CK_CODED_EMOTIONS = [to_categorical(i, CK_NUM_EMOTIONS) for i in range(CK_NUM_EMOTIONS)]
 CK_NEUTRAL_CODED_EMOTION = CK_CODED_EMOTIONS[-1]
 CK_NEUTRAL_EMOTION_NUM = CK_NUM_EMOTIONS - 1
+
+
+def getMode(classifier_predictions_list, oneHotEmotions=None):
+    if oneHotEmotions is None:
+        if len(classifier_predictions_list[0][0]) == JAFFE_NUM_EMOTIONS:
+            oneHotEmotions = JAFFE_CODED_EMOTIONS
+        else:
+            oneHotEmotions = CK_CODED_EMOTIONS
+
+    counts = sum(classifier_predictions_list)
+    maxCountIndex = [np.argmax(row) for row in counts]
+    oneHotModes = np.array([oneHotEmotions[i] for i in maxCountIndex])
+    return oneHotModes
