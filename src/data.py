@@ -83,7 +83,7 @@ def getCKEmotion(personDir, emotionDir, oneHotEncoded):
     return None
 
 
-def getCohnKanadeData(oneHotEncoded=True):
+def getCohnKanadeData(oneHotEncoded=True, useNeutral=False):
     images = []
     emotions = []
     people = []
@@ -95,25 +95,24 @@ def getCohnKanadeData(oneHotEncoded=True):
             emotion_full_dir = person_full_dir + '/' + emotionDir
             imagesNames = sorted(os.listdir(emotion_full_dir))
 
-            relevantImages = [imagesNames[0], imagesNames[-2], imagesNames[-1]]
-
             emotion = getCKEmotion(personDir, emotionDir, oneHotEncoded)
             if emotion is None:
                 continue
 
-            # First image corresponds to neutral
-            # images.append(getImage(emotion_full_dir + '/' + relevantImages[0]))
-            # if oneHotEncoded:
-            #     emotions.append(CK_NEUTRAL_CODED_EMOTION)
-            # else:
-            #     emotions.append(CK_NEUTRAL_EMOTION_NUM)
-            # people.append(personDir)
+            relevantImages = [imagesNames[0], imagesNames[-2], imagesNames[-1]]
 
             # Last two images to the real emotion
-            for imageName in relevantImages:  # relevantImages[1:]:
+            for i, imageName in enumerate(relevantImages):
                 image = getImage(emotion_full_dir + '/' + imageName)
                 images.append(image)
-                emotions.append(emotion)
+                # First image may correspond to neutral
+                if useNeutral and i == 0:
+                    if oneHotEncoded:
+                        emotions.append(CK_NEUTRAL_CODED_EMOTION)
+                    else:
+                        emotions.append(CK_NEUTRAL_EMOTION_NUM)
+                else:
+                    emotions.append(emotion)
                 people.append(personDir)
 
     return np.array(images), np.array(emotions), labelEncode(people)
@@ -157,12 +156,21 @@ CK_EMOTIONS = [
     'HAPPY',
     'SADNESS',
     'SUPRISE',
-    'NEUTRAL'
 ]
 CK_NUM_EMOTIONS = len(CK_EMOTIONS)
 CK_CODED_EMOTIONS = [to_categorical(i, CK_NUM_EMOTIONS) for i in range(CK_NUM_EMOTIONS)]
 CK_NEUTRAL_CODED_EMOTION = CK_CODED_EMOTIONS[-1]
 CK_NEUTRAL_EMOTION_NUM = CK_NUM_EMOTIONS - 1
+
+
+def addNeutralEmotion():
+    CK_EMOTIONS.append('NEUTRAL')
+
+    global CK_NUM_EMOTIONS, CK_CODED_EMOTIONS, CK_NEUTRAL_CODED_EMOTION, CK_NEUTRAL_EMOTION_NUM
+    CK_NUM_EMOTIONS = len(CK_EMOTIONS)
+    CK_CODED_EMOTIONS = [to_categorical(i, CK_NUM_EMOTIONS) for i in range(CK_NUM_EMOTIONS)]
+    CK_NEUTRAL_CODED_EMOTION = CK_CODED_EMOTIONS[-1]
+    CK_NEUTRAL_EMOTION_NUM = CK_NUM_EMOTIONS - 1
 
 
 def getMode(classifier_predictions_list, oneHotEmotions=None):

@@ -1,3 +1,6 @@
+from data import addNeutralEmotion
+
+
 class CNNGenerationConfiguration:
     def __init__(self,
                  layer_range,
@@ -12,11 +15,15 @@ class CNNGenerationConfiguration:
 
 
 class RunnerConfiguration:
-    def __init__(self, use_jaffe, classifier_range, person_dependent):
+    def __init__(self, use_jaffe, classifier_range, person_dependent, use_neutral):
         self.USE_JAFFE = use_jaffe
         self.CLASSIFIER_RANGE = classifier_range
         # Person dependent = same person can appear in training and test set
         self.PERSON_DEPENDENT = person_dependent
+        self.USE_NEUTRAL = use_neutral
+
+        if use_neutral:
+            addNeutralEmotion()
 
     def dataset_name(self):
         return "JAFFE" if self.USE_JAFFE else "CK+"

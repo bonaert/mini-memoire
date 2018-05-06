@@ -5,7 +5,7 @@ try:
     useJAFFE = int(useJAFFE)
     personDependent = int(personDependent)
 except ValueError:
-    useJAFFE = True
+    useJAFFE = False
     personDependent = True
 
 from conf import Configuration, RunnerConfiguration, ESNGenerationConfiguration, CNNGenerationConfiguration
@@ -36,7 +36,8 @@ runnerConf = RunnerConfiguration(
     use_jaffe=useJAFFE,
     classifier_range=list(range(5, 81, 5)),
     # Person dependent = same person can appear in training and test set
-    person_dependent=personDependent
+    person_dependent=personDependent,
+    use_neutral=False
 )
 
 config = Configuration(runnerConf, cnnGenerationConf, esnGenerationConf)

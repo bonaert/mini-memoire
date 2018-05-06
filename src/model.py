@@ -56,13 +56,13 @@ RunInformation = namedtuple('RunInformation', ['numClassifiers', 'accuracy', 'ti
 class Runner:
 
     @staticmethod
-    def getData(useJAFFE, randomGenerator, personDependent):
+    def getData(useJAFFE, randomGenerator, personDependent, useNeutral=False):
         if useJAFFE:
             oneHotEmotions = JAFFE_CODED_EMOTIONS
             images, y, groups = getJAFFEData(oneHotEncoded=False)
         else:
             oneHotEmotions = CK_CODED_EMOTIONS
-            images, y, groups = getCohnKanadeData(oneHotEncoded=False)
+            images, y, groups = getCohnKanadeData(oneHotEncoded=False, useNeutral=useNeutral)
 
         # Re-shape images to add a third value
         images = images.reshape(images.shape[0], images.shape[1], images.shape[2], 1)
