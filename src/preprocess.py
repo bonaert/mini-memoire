@@ -1,28 +1,30 @@
 import shutil
 
-from skimage import io
-from skimage.transform import resize
 from tqdm import tqdm
+from PIL import Image
 
 import utils
 
 
 def transformImage(image):
     # greyImage = rgb2gray(image)
-    image_resized = resize(image, (64, 64))
-    return image_resized
+    # image_resized = resize(image, (64, 64), anti_aliasing=True)
+    image = image.convert('L')
+    return image.resize((64, 64), resample=Image.LANCZOS)
+    # return image_resized
 
 
 def transformAndSaveImage(name, datasetDir):
     fileNameWithoutExtension = name.rsplit('.', maxsplit=1)[0]
-    image = io.imread(utils.buildPath('datasets/%s/%s' % (datasetDir, name)), as_grey=True)
-    transformedImage = transformImage(image)
+    filePath = utils.buildPath('datasets/%s/%s' % (datasetDir, name))
 
-    assert len(transformedImage.shape) == 2
+    image = Image.open(filePath)
+    transformedImage = transformImage(image)
 
     fullFilePath = utils.buildPath('datasets/transformed/%s/%s.png' %
                                    (datasetDir, fileNameWithoutExtension))
-    io.imsave(fullFilePath, transformedImage)
+    utils.createDirectoriesIfNeeded(fullFilePath)
+    transformedImage.save(fullFilePath, format="png")
 
 
 def transformAllImages():
