@@ -1,5 +1,6 @@
 from collections import namedtuple
 
+import numpy
 from keras import Sequential
 from keras.layers import Conv2D, MaxPooling2D, Flatten
 
@@ -48,8 +49,8 @@ def generateCNNParameters(cnn_gen_conf: CNNGenerationConfiguration, random_gener
     for i in range(numLayers):
         # minNumKernels = 20 if i == 0 else layersInfos[-1].numKernels
         layerInfo = LayerInfo(
-            numKernels=random_generator.randint(cnn_gen_conf.NUM_KERNELS_MIN, cnn_gen_conf.NUM_KERNELS_MAX),
-            kernelSize=random_generator.randint(cnn_gen_conf.KERNEL_SIZE_MIN, cnn_gen_conf.KERNEL_SIZE_MAX),
+            numKernels=random_generator.randint(cnn_gen_conf.NUM_KERNELS_MIN, cnn_gen_conf.NUM_KERNELS_MAX + 1),
+            kernelSize=random_generator.randint(cnn_gen_conf.KERNEL_SIZE_MIN, cnn_gen_conf.KERNEL_SIZE_MAX + 1),
             hasPool=cnn_gen_conf.HAS_POOL,
             poolSize=random_generator.choice(cnn_gen_conf.POOL_SIZE_RANGE))
         layersInfos.append(layerInfo)
